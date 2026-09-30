@@ -1,0 +1,10 @@
+{
+  "name": "ia-studio",
+  "version": "1.0.0",
+  "description": "Plataforma para generar imágenes con la API de Google (Gemini / Imagen)",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IA Studio · Generador de imágenes</title>
+<style>
+  :root {
+    --bg:#0e0f13; --panel:#171922; --panel2:#1f222d; --line:#2b2f3d; --text:#eceef5; --muted:#8b91a5;
+    --accent:#7c5cff; --accent2:#3ecfff; --danger:#ff6b6b;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--line); }
+  .logo { font-weight:700; font-size:18px; letter-spacing:.3px; }
+  .logo span { background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  main { display:grid; grid-template-columns:360px 1fr; gap:20px; padding:20px; max-width:1400px; margin:0 auto; }
+  @media (max-width:860px) { main { grid-template-columns:1fr; } }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:14px 0 6px; text-transform:uppercase; letter-spacing:.6px; }
+  label:first-child { margin-top:0; }
+  textarea, select, input[type=text], input[type=password] {
+    width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font:inherit;
+  }
+  textarea { min-height:130px; resize:vertical; }
+  textarea:focus, select:focus, input:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  button { font:inherit; cursor:pointer; border:0; border-radius:10px; padding:10px 14px; color:var(--text); background:var(--panel2); border:1px solid var(--line); }
+  button:hover { border-color:var(--accent); }
+  button.primary { width:100%; margin-top:16px; padding:13px; font-weight:600; background:linear-gradient(90deg,var(--accent),#5b7cff); border:0; }
+  button.primary:disabled { opacity:.55; cursor:wait; }
+  button.small { padding:6px 10px; font-size:13px; }
+  .refs { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .refs div { position:relative; width:58px; height:58px; }
+  .refs img { width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--line); }
+  .refs b { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--danger); text-align:center; line-height:18px; font-size:12px; cursor:pointer; }
+  .hint { font-size:12px; color:var(--muted); margin-top:6px; }
+  .err { background:#3a1d22; border:1px solid var(--danger); color:#ffb4b4; border-radius:10px; padding:10px 12px; margin-bottom:14px; display:none; white-space:pre-wrap; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+  .item { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .item img { display:block; width:100%; cursor:zoom-in; background:#000; }
+  .item .meta { padding:10px 12px; font-size:12px; color:var(--muted); }
+  .item .meta p { margin:0 0 8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .item .acts { display:flex; gap:6px; }
+  .loading { aspect-ratio:1; display:grid; place-items:center; color:var(--muted); background:linear-gradient(110deg,var(--panel) 30%,var(--panel2) 50%,var(--panel) 70%); background-size:200% 100%; animation:sh 1.3s linear infinite; border-radius:12px; border:1px solid var(--line); }
+  @keyframes sh { to { background-position:-200% 0; } }
+  .empty { text-align:center; color:var(--muted); padding:80px 20px; }
+  .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .top h2 { margin:0; font-size:16px; }
+  dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:14px; padding:20px; width:min(460px,92vw); }
+  dialog::backdrop { background:rgba(0,0,0,.6); }
+  #lightbox { width:auto; max-width:94vw; padding:0; background:transparent; border:0; }
+  #lightbox img { max-width:94vw; max-height:92vh; border-radius:10px; }
+  a { color:var(--accent2); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">✦ <span>IA Studio</span></div>
+  <button id="btnSettings">⚙ Ajustes / API key</button>
+</header>
+
+<main>
+  <section class="card">
+    <label for="prompt">Prompt</label>
+    <textarea id="prompt" placeholder="Ej: Fotografía cinematográfica de un zorro rojo en un bosque nevado al amanecer, luz suave, 85mm"></textarea>
+
+    <label for="model">Modelo</label>
+    <select id="model"></select>
+
+    <div class="row">
+      <div>
+        <label for="ratio">Proporción</label>
+        <select id="ratio">
+          <option value="1:1">1:1 · Cuadrado</option>
+          <option value="16:9">16:9 · Horizontal</option>
+          <option value="9:16">9:16 · Vertical</option>
+          <option value="4:3">4:3</option>
+          <option value="3:4">3:4</option>
+          <option value="auto">Auto</option>
+        </select>
+      </div>
+      <div>
+        <label for="count">Cantidad</label>
+        <select id="count"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+      </div>
+    </div>
+
+    <label>Imágenes de referencia <span style="text-transform:none">(solo modelos Gemini)</span></label>
+    <input type="file" id="refInput" accept="image/*" multiple hidden>
+    <button class="small" id="btnRef">＋ Añadir imagen</button>
+    <div class="refs" id="refs"></div>
+
+    <button class="primary" id="btnGen">Generar imagen</button>
+    <div class="hint">Ctrl/⌘ + Enter para generar.</div>
+  </section>
+
+  <section>
+    <div class="err" id="err"></div>
+    <div class="top">
+      <h2>Galería</h2>
+      <button class="small" id="btnClear">Vaciar</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty">Tus imágenes aparecerán aquí.</div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <h3 style="margin-top:0">Ajustes</h3>
+  <label for="apiKey">Google API key</label>
+  <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off">
+  <div class="hint">
+    Consíguela en <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener">aistudio.google.com/api-keys</a>.
+    Se guarda solo en este navegador. También puedes definir <code>GEMINI_API_KEY</code> en el servidor.
+  </div>
+  <label for="customModel">Modelo personalizado (opcional)</label>
+  <input type="text" id="customModel" placeholder="ej. gemini-2.5-flash-image">
+  <div style="display:flex; gap:8px; margin-top:18px; justify-content:flex-end">
+    <button id="btnRefresh">Cargar modelos de mi cuenta</button>
+    <button id="btnSave" style="background:var(--accent)">Guardar</button>
+  </div>
+</dialog>
+
+<dialog id="lightbox"><img id="lbImg" alt=""></dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const DEFAULT_MODELS = [
+  { id: "gemini-2.5-flash-image", name: "Gemini 2.5 Flash Image (Nano Banana)" },
+  { id: "imagen-4.0-generate-001", name: "Imagen 4" },
+  { id: "imagen-4.0-fast-generate-001", name: "Imagen 4 Fast" },
+];
+let refs = [];
+let serverKey = false;
+
+// ---------- almacenamiento ----------
+const ls = {
+  get: (k, d = "") => { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+const headers = () => ({ "Content-Type": "application/json", ...(ls.get("apikey") ? { "x-api-key": ls.get("apikey") } : {}) });
+
+// Galería persistente en IndexedDB (las imágenes pesan demasiado para localStorage)
+const db = new Promise((res, rej) => {
+  const r = indexedDB.open("ia-studio", 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("images", { keyPath: "id", autoIncrement: true });
+  r.onsuccess = () => res(r.result);
+  r.onerror = () => rej(r.error);
+});
+const tx = async (mode, fn) => {
+  const store = (await db).transaction("images", mode).objectStore("images");
+  return new Promise((res, rej) => { const q = fn(store); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+};
+
+// ---------- UI ----------
+function showError(msg) { const e = $("err"); e.textContent = msg || ""; e.style.display = msg ? "block" : "none"; }
+
+function fillModels(list) {
+  const saved = ls.get("model");
+  const custom = ls.get("customModel");
+  const all = [...(custom ? [{ id: custom, name: `${custom} (personalizado)` }] : []), ...list];
+  $("model").innerHTML = all.map((m) => `<option value="${m.id}">${m.name || m.id}</option>`).join("");
+  if (all.some((m) => m.id === saved)) $("model").value = saved;
+  else if (custom) $("model").value = custom;
+}
+
+function card(img) {
+  const src = `data:${img.mime};base64,${img.data}`;
+  const el = document.createElement("div");
+  el.className = "item";
+  const ext = img.mime.split("/")[1] || "png";
+  el.innerHTML = `<img alt=""><div class="meta"><p></p><div class="acts">
+    <a class="dl"><button class="small">⬇ Descargar</button></a>
+    <button class="small reuse">↻ Reusar prompt</button>
+    <button class="small del">✕</button></div></div>`;
+  el.querySelector("img").src = src;
+  el.querySelector("p").textContent = img.prompt;
+  el.querySelector("p").title = img.prompt;
+  const dl = el.querySelector(".dl");
+  dl.href = src; dl.download = `ia-studio-${img.id || Date.now()}.${ext}`;
+  el.querySelector("img").onclick = () => { $("lbImg").src = src; $("lightbox").showModal(); };
+  el.querySelector(".reuse").onclick = () => { $("prompt").value = img.prompt; $("prompt").focus(); };
+  el.querySelector(".del").onclick = async () => { await tx("readwrite", (s) => s.delete(img.id)); el.remove(); syncEmpty(); };
+  return el;
+}
+
+function syncEmpty() { $("empty").style.display = $("grid").children.length ? "none" : "block"; }
+
+async function loadGallery() {
+  const all = (await tx("readonly", (s) => s.getAll())).reverse();
+  all.forEach((i) => $("grid").append(card(i)));
+  syncEmpty();
+}
+
+const fileToRef = (file) => new Promise((res) => {
+  const r = new FileReader();
+  r.onload = () => { const [head, data] = r.result.split(","); res({ mime: file.type || head.match(/:(.*?);/)[1], data }); };
+  r.readAsDataURL(file);
+});
+
+function renderRefs() {
+  $("refs").innerHTML = "";
+  refs.forEach((r, i) => {
+    const d = document.createElement("div");
+    d.innerHTML = `<img src="data:${r.mime};base64,${r.data}" alt=""><b title="Quitar">×</b>`;
+    d.querySelector("b").onclick = () => { refs.splice(i, 1); renderRefs(); };
+    $("refs").append(d);
+  });
+}
+
+// ---------- generar ----------
+async function generate() {
+  const prompt = $("prompt").value.trim();
+  if (!prompt) return showError("Escribe un prompt.");
+  showError("");
+  const model = $("model").value;
+  const count = +$("count").value;
+  const btn = $("btnGen");
+  btn.disabled = true; btn.textContent = "Generando…";
+
+  const placeholders = Array.from({ length: count }, () => {
+    const p = document.createElement("div"); p.className = "loading"; p.textContent = "Generando…";
+    $("grid").prepend(p); return p;
+  });
+  syncEmpty();
+
+  try {
+    const r = await fetch("/api/generate", {
+      method: "POST", headers: headers(),
+      body: JSON.stringify({ prompt, model, aspectRatio: $("ratio").value, count, references: model.startsWith("imagen") ? [] : refs }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Error desconocido");
+    for (const im of data.images) {
+      const rec = { ...im, prompt, model, created: Date.now() };
+      rec.id = await tx("readwrite", (s) => s.add(rec));
+      $("grid").prepend(card(rec));
+    }
+    if (data.text) showError("Nota del modelo: " + data.text);
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    placeholders.forEach((p) => p.remove());
+    btn.disabled = false; btn.textContent = "Generar imagen";
+    syncEmpty();
+  }
+}
+
+// ---------- eventos ----------
+$("btnGen").onclick = generate;
+$("prompt").addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") generate(); });
+$("model").onchange = () => ls.set("model", $("model").value);
+$("btnRef").onclick = () => $("refInput").click();
+$("refInput").onchange = async (e) => {
+  for (const f of e.target.files) if (refs.length < 6) refs.push(await fileToRef(f));
+  e.target.value = ""; renderRefs();
+};
+$("btnClear").onclick = async () => {
+  if (!confirm("¿Borrar toda la galería?")) return;
+  await tx("readwrite", (s) => s.clear()); $("grid").innerHTML = ""; syncEmpty();
+};
+$("btnSettings").onclick = () => { $("apiKey").value = ls.get("apikey"); $("customModel").value = ls.get("customModel"); $("settings").showModal(); };
+$("btnSave").onclick = () => {
+  ls.set("apikey", $("apiKey").value.trim()); ls.set("customModel", $("customModel").value.trim());
+  fillModels(window._models || DEFAULT_MODELS); $("settings").close();
+};
+$("btnRefresh").onclick = async () => {
+  ls.set("apikey", $("apiKey").value.trim());
+  try {
+    const r = await fetch("/api/models", { headers: headers() });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    if (d.models.length) { window._models = d.models; fillModels(d.models); }
+    alert(`${d.models.length} modelos de imagen disponibles.`);
+  } catch (e) { alert("No se pudieron cargar los modelos: " + e.message); }
+};
+$("lightbox").onclick = () => $("lightbox").close();
+
+// ---------- inicio ----------
+fillModels(DEFAULT_MODELS);
+loadGallery();
+fetch("/api/config").then((r) => r.json()).then((c) => {
+  serverKey = c.serverKey;
+  if (!serverKey && !ls.get("apikey")) $("btnSettings").click();
+}).catch(() => {});
+</script>
+</body>
+</html>
