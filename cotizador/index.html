@@ -78,9 +78,7 @@ h1, h2 { text-wrap: balance; }
 .step:active { transform: scale(0.9); }
 .seg label:active { transform: scale(0.97); }
 [hidden] { display: none !important; }
-body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; letter-spacing: -0.006em; -webkit-font-smoothing: antialiased; font-feature-settings: 'ss01', 'cv11'; }
-/* Fondo con luces de marca: es lo que se ve borroso detrás del vidrio */
-body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--backdrop); }
+body { margin: 0; min-height: 100vh; background: var(--backdrop); background-attachment: fixed; background-color: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; letter-spacing: -0.006em; -webkit-font-smoothing: antialiased; font-feature-settings: 'ss01', 'cv11'; }
 button, input, textarea { font-family: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -502,8 +500,8 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
 <div class="overlay" id="imgModal" role="dialog" aria-modal="true" aria-labelledby="imgTitle" hidden>
   <div class="sheet">
     <div class="sheet-head"><h2 id="imgTitle">Cotización lista</h2><button class="btn" type="button" id="imgClose">Cerrar</button></div>
-    <p class="note" style="margin:0">Mantén presionada la imagen (celular) o haz clic derecho (computadora) y elige guardar o copiar imagen. Luego envíala por WhatsApp o correo.</p>
-    <div class="sheet-actions"><button class="btn primary" type="button" id="imgCopy">Copiar imagen</button><button class="btn" type="button" id="imgPdf">Descargar PDF</button><span class="note" id="imgMsg" role="status"></span></div>
+    <p class="note" style="margin:0">Descárgala como imagen o PDF, o cópiala, y envíala por WhatsApp o correo.</p>
+    <div class="sheet-actions"><button class="btn primary" type="button" id="imgCopy">Copiar imagen</button><button class="btn" type="button" id="imgPdf">Descargar PDF</button><button class="btn" type="button" id="imgPng">Descargar imagen</button><span class="note" id="imgMsg" role="status"></span></div>
     <div class="img-wrap"><img id="quoteImg" alt="Cotización lista para enviar al cliente"></div>
   </div>
 </div>
@@ -1061,17 +1059,28 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       });
     });
   }
+  /* Guardar un archivo: en la app publicada usa el permiso de descargas del visor; abierto como archivo local, un enlace normal. */
+  var dlCap = null;
+  if (window.claude && typeof window.claude.use === 'function') {
+    dlCap = window.claude.use('downloads').catch(function () { return null; });
+  }
+  function saveFile(blob, filename) {
+    return Promise.resolve(dlCap).then(function (dl) {
+      if (dl) return dl.save({ filename: filename, data: blob });
+      var url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    });
+  }
   function downloadPdf(btn, idle) {
     if (!last || !last.lines.length) return;
     var failed = false;
     btn.disabled = true; btn.textContent = 'Preparando PDF…';
-    makePdf().then(function (pdf) {
-      var url = URL.createObjectURL(pdf), a = document.createElement('a');
-      a.href = url; a.download = pdfName(); document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
-    }).catch(function () { failed = true; }).then(function () {
+    var declined = false;
+    makePdf().then(function (pdf) { return saveFile(pdf, pdfName()); })
+    .catch(function (e) { if (e && e.code === 'declined') declined = true; else failed = true; }).then(function () {
       btn.disabled = !(last && last.lines.length);
-      btn.textContent = failed ? 'No se pudo, reintenta' : 'PDF descargado';
+      btn.textContent = failed ? 'No se pudo, reintenta' : (declined ? 'Descarga cancelada' : 'PDF listo');
       setTimeout(function () { btn.textContent = idle; }, 2200);
     });
   }
@@ -1111,13 +1120,19 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       });
   });
   $('#genpdf').addEventListener('click', function () { downloadPdf($('#genpdf'), 'Descargar PDF'); });
+  $('#imgPng').addEventListener('click', function () {
+    if (!lastBlob) return;
+    var b = $('#imgPng');
+    saveFile(lastBlob, pdfName().replace(/\.pdf$/, '.png')).then(function () { b.textContent = 'Imagen lista'; }, function (e) { b.textContent = e && e.code === 'declined' ? 'Descarga cancelada' : 'No se pudo, reintenta'; })
+      .then(function () { setTimeout(function () { b.textContent = 'Descargar imagen'; }, 2200); });
+  });
   $('#imgPdf').addEventListener('click', function () { downloadPdf($('#imgPdf'), 'Descargar PDF'); });
   $('#imgClose').addEventListener('click', closeModal);
   $('#imgModal').addEventListener('click', function (e) { if (e.target === $('#imgModal')) closeModal(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#imgModal').hidden) closeModal(); });
   $('#imgCopy').addEventListener('click', function () {
     var msg = $('#imgMsg');
-    var manual = function () { msg.textContent = 'Tu navegador no permite copiar desde aquí. Mantén presionada la imagen o haz clic derecho para guardarla.'; };
+    var manual = function () { msg.textContent = 'Aquí no se puede copiar la imagen. Usa Descargar imagen.'; };
     if (!lastBlob) return;
     try {
       navigator.clipboard.write([new ClipboardItem({ 'image/png': lastBlob })]).then(function () { msg.textContent = 'Imagen copiada.'; }, manual);
