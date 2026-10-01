@@ -92,7 +92,7 @@ button, input, textarea { font-family: inherit; color: inherit; }
   border-bottom: 1px solid rgba(6, 214, 160, 0.20); box-shadow: inset 0 -1px 0 rgba(230, 251, 246, 0.04); }
 .bar-in { padding: 12px clamp(16px, 3vw, 48px); display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
-.brand-logo { display: block; height: 30px; width: auto; flex: none; }
+.brand-logo { display: block; height: 24px; width: auto; flex: none; }
 .brand-t { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; padding-left: 16px; border-left: 1px solid rgba(230, 251, 246, 0.24); }
 .eyebrow { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--emerald); }
 h1 { font-family: var(--font-display); font-weight: 600; font-size: 19px; line-height: 1.1; letter-spacing: -0.02em; margin: 3px 0 0; color: var(--polar); }
@@ -258,6 +258,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
 .rc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .rc-actions .btn { flex: 1 1 auto; padding-block: 12px; }
 .rc-actions .btn.cta { flex: 2 1 auto; }
+.rc-actions #copy { flex-basis: 100%; }
 .fallback { width: 100%; min-height: 150px; font: 13px/1.45 var(--font-mono); padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--field); }
 
 /* Barra inferior móvil */
@@ -467,6 +468,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
           <p class="rc-hours" id="rc-hours" hidden></p>
           <div class="rc-actions">
             <button class="btn cta" type="button" id="genimg">Generar imagen</button>
+            <button class="btn primary" type="button" id="genpdf">Descargar PDF</button>
             <button class="btn" type="button" id="copy">Copiar texto</button>
           </div>
           <textarea class="fallback" id="fallback" hidden readonly aria-label="Texto de la cotización para copiar"></textarea>
@@ -499,9 +501,9 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
 
 <div class="overlay" id="imgModal" role="dialog" aria-modal="true" aria-labelledby="imgTitle" hidden>
   <div class="sheet">
-    <div class="sheet-head"><h2 id="imgTitle">Cotización lista como imagen</h2><button class="btn" type="button" id="imgClose">Cerrar</button></div>
+    <div class="sheet-head"><h2 id="imgTitle">Cotización lista</h2><button class="btn" type="button" id="imgClose">Cerrar</button></div>
     <p class="note" style="margin:0">Mantén presionada la imagen (celular) o haz clic derecho (computadora) y elige guardar o copiar imagen. Luego envíala por WhatsApp o correo.</p>
-    <div class="sheet-actions"><button class="btn primary" type="button" id="imgCopy">Copiar imagen</button><span class="note" id="imgMsg" role="status"></span></div>
+    <div class="sheet-actions"><button class="btn primary" type="button" id="imgCopy">Copiar imagen</button><button class="btn" type="button" id="imgPdf">Descargar PDF</button><span class="note" id="imgMsg" role="status"></span></div>
     <div class="img-wrap"><img id="quoteImg" alt="Cotización lista para enviar al cliente"></div>
   </div>
 </div>
@@ -789,6 +791,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     $('#rc-foot').textContent = 'Válida por ' + cfg.mods.valid + ' días. ' + (state.igv ? 'Montos con IGV.' : 'Montos sin IGV.') + ' Solo diseño: la impresión la cotiza la imprenta.';
     $('#copy').disabled = !has;
     $('#genimg').disabled = !has;
+    $('#genpdf').disabled = !has;
     var hEl = $('#rc-hours');
     var hr = cfg.mods.hourly > 0 ? r.net / cfg.mods.hourly : 0;
     hEl.hidden = !(has && hr > 0);
@@ -866,13 +869,13 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     /* Cabecera de marca */
     glow(ctx, 0, 0, W, HEAD_H);
     if (logoImg.complete && logoImg.naturalWidth) {
-      var lh = 78, lw = Math.round(lh * logoImg.naturalWidth / logoImg.naturalHeight);
-      ctx.drawImage(logoImg, L, 76, lw, lh);
+      var lh = 54, lw = Math.round(lh * logoImg.naturalWidth / logoImg.naturalHeight);
+      ctx.drawImage(logoImg, L, 86, lw, lh);
     } else {
       ctx.textAlign = 'left'; ctx.fillStyle = IC.polar; ctx.font = '700 64px ' + SERIF; ctx.fillText('ZAS', L, 140);
     }
     ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(230,251,246,0.78)'; ctx.font = '400 21px ' + BODY;
-    ctx.fillText('Diseño gráfico y contenido creativo', L, 208);
+    ctx.fillText('Diseño gráfico y contenido creativo', L, 186);
     ctx.textAlign = 'right'; ctx.fillStyle = IC.polar; ctx.font = '600 62px ' + SERIF; spacing(-2); ctx.fillText('Cotización', R, 130); spacing(0);
     ctx.fillStyle = IC.emerald; ctx.font = '600 25px ' + MONO; spacing(1.5); ctx.fillText('N° ' + d.num, R, 178); spacing(0);
     ctx.fillStyle = IC.emerald; ctx.fillRect(0, HEAD_H, W, 5);
@@ -1019,8 +1022,57 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     var cv = document.createElement('canvas');
     cv.width = IMG_W; cv.height = H;
     drawQuote(cv.getContext('2d'), d, H);
+    return cv;
+  }
+  function canvasBlob(cv, type, q) {
     return new Promise(function (resolve, reject) {
-      cv.toBlob(function (b) { if (b) resolve(b); else reject(new Error('toBlob')); }, 'image/png');
+      cv.toBlob(function (b) { if (b) resolve(b); else reject(new Error('toBlob')); }, type, q);
+    });
+  }
+
+  /* ---------- Cotización como PDF ----------
+     PDF mínimo hecho a mano (sin librerías): una página del ancho de un A4 con la cotización como imagen JPEG. */
+  function buildPdf(jpeg, pxW, pxH) {
+    var pw = 595.28, ph = Math.round(pw * pxH / pxW * 100) / 100;
+    var enc = new TextEncoder(), parts = [], offs = [], len = 0;
+    function put(x) { var b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; }
+    function obj(n, body) { offs[n] = len; put(n + ' 0 obj\n'); body(); put('\nendobj\n'); }
+    var content = 'q\n' + pw + ' 0 0 ' + ph + ' 0 0 cm\n/Im0 Do\nQ';
+    put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+    obj(1, function () { put('<< /Type /Catalog /Pages 2 0 R >>'); });
+    obj(2, function () { put('<< /Type /Pages /Kids [3 0 R] /Count 1 >>'); });
+    obj(3, function () { put('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pw + ' ' + ph + '] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>'); });
+    obj(4, function () { put('<< /Type /XObject /Subtype /Image /Width ' + pxW + ' /Height ' + pxH + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpeg.length + ' >>\nstream\n'); put(jpeg); put('\nendstream'); });
+    obj(5, function () { put('<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream'); });
+    var xref = len, x = 'xref\n0 6\n0000000000 65535 f \n';
+    for (var i = 1; i <= 5; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    put(x + 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+  function pdfName() {
+    var c = (state.client.trim() || 'cliente').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 40);
+    return 'cotizacion-' + pad(state.number) + '-' + (c || 'cliente') + '.pdf';
+  }
+  function makePdf() {
+    return fontsReady().then(function () {
+      var cv = renderQuoteImage(quoteData(last));
+      return canvasBlob(cv, 'image/jpeg', 0.95).then(function (b) { return b.arrayBuffer(); }).then(function (buf) {
+        return buildPdf(new Uint8Array(buf), cv.width, cv.height);
+      });
+    });
+  }
+  function downloadPdf(btn, idle) {
+    if (!last || !last.lines.length) return;
+    var failed = false;
+    btn.disabled = true; btn.textContent = 'Preparando PDF…';
+    makePdf().then(function (pdf) {
+      var url = URL.createObjectURL(pdf), a = document.createElement('a');
+      a.href = url; a.download = pdfName(); document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    }).catch(function () { failed = true; }).then(function () {
+      btn.disabled = !(last && last.lines.length);
+      btn.textContent = failed ? 'No se pudo, reintenta' : 'PDF descargado';
+      setTimeout(function () { btn.textContent = idle; }, 2200);
     });
   }
   var lastBlob = null;
@@ -1049,7 +1101,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     var b = $('#genimg'), failed = false;
     b.disabled = true; b.textContent = 'Generando…';
     fontsReady()
-      .then(function () { return renderQuoteImage(quoteData(last)); })
+      .then(function () { return canvasBlob(renderQuoteImage(quoteData(last)), 'image/png'); })
       .then(showImage)
       .catch(function () { failed = true; })
       .then(function () {
@@ -1058,6 +1110,8 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
         if (failed) setTimeout(function () { b.textContent = 'Generar imagen'; }, 2500);
       });
   });
+  $('#genpdf').addEventListener('click', function () { downloadPdf($('#genpdf'), 'Descargar PDF'); });
+  $('#imgPdf').addEventListener('click', function () { downloadPdf($('#imgPdf'), 'Descargar PDF'); });
   $('#imgClose').addEventListener('click', closeModal);
   $('#imgModal').addEventListener('click', function (e) { if (e.target === $('#imgModal')) closeModal(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#imgModal').hidden) closeModal(); });
