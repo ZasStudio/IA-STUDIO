@@ -1006,15 +1006,25 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       cv.toBlob(function (b) { if (b) resolve(b); else reject(new Error('toBlob')); }, 'image/png');
     });
   }
-  var imgUrl = null, lastBlob = null;
+  var lastBlob = null;
+  /* Se usa una URL de datos (no blob:) porque algunos entornos y vistas previas bloquean las imágenes blob: */
   function showImage(blob) {
     lastBlob = blob;
-    if (imgUrl) URL.revokeObjectURL(imgUrl);
-    imgUrl = URL.createObjectURL(blob);
-    $('#quoteImg').src = imgUrl;
-    $('#imgMsg').textContent = '';
-    $('#imgModal').hidden = false;
-    $('#imgClose').focus();
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var img = $('#quoteImg');
+        img.onload = function () { resolve(); };
+        img.onerror = function () { reject(new Error('img')); };
+        img.src = fr.result;
+      };
+      fr.onerror = function () { reject(new Error('read')); };
+      fr.readAsDataURL(blob);
+    }).then(function () {
+      $('#imgMsg').textContent = '';
+      $('#imgModal').hidden = false;
+      $('#imgClose').focus();
+    });
   }
   function closeModal() { $('#imgModal').hidden = true; $('#genimg').focus(); }
   $('#genimg').addEventListener('click', function () {
