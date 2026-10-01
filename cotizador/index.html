@@ -428,7 +428,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
               <label class="opt" for="igv"><input type="checkbox" id="igv"><span><span class="t" id="lb-igv">Agregar IGV</span><span class="d">Actívalo si vas a emitir factura.</span></span></label>
             </div>
             <div class="inline-fields">
-              <label class="field narrow"><span id="lb-revs">Revisiones extra</span><input type="number" id="revs" inputmode="numeric" min="0" max="20"></label>
+              <label class="field narrow"><span id="lb-revs">Cambios de diseño extra</span><input type="number" id="revs" inputmode="numeric" min="0" max="20"></label>
               <div class="field">
                 <span class="lbl">Descuento</span>
                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -668,7 +668,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     if (state.source && base > 0) adj.push({ label: 'Archivos editables' + pctLabel(m.sourcePct), amount: Math.round(base * m.sourcePct / 100) });
     var hasPrint = lines.some(function (l) { return l.print; });
     if (state.print && hasPrint) adj.push({ label: 'Preparación para imprenta', amount: m.printFlat });
-    if (state.revs > 0 && base > 0) adj.push({ label: state.revs + (state.revs === 1 ? ' revisión extra' : ' revisiones extra'), amount: state.revs * m.revPrice });
+    if (state.revs > 0 && base > 0) adj.push({ label: state.revs + (state.revs === 1 ? ' cambio de diseño extra' : ' cambios de diseño extra'), amount: state.revs * m.revPrice });
     var subtotal = base + adj.reduce(function (s, a) { return s + a.amount; }, 0);
     var discPct = Math.min(100, Math.max(0, state.discount));
     var disc = Math.round(subtotal * discPct / 100);
@@ -817,7 +817,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     L.push('Adelanto ' + cfg.mods.deposit + '% para iniciar: ' + fmt(r.deposit));
     L.push('Saldo contra entrega: ' + fmt(r.balance));
     L.push('Incluye solo el diseño y los archivos listos para imprenta. La impresión la cotiza la imprenta.');
-    if (cfg.mods.revIncluded > 0) L.push('Incluye ' + cfg.mods.revIncluded + ' revisiones. Cada revisión extra: ' + fmt(cfg.mods.revPrice) + '.');
+    if (cfg.mods.revIncluded > 0) L.push('Incluye ' + cfg.mods.revIncluded + (cfg.mods.revIncluded === 1 ? ' cambio de diseño' : ' cambios de diseño') + '. Cada cambio extra: ' + fmt(cfg.mods.revPrice) + '.');
     L.push('Válida por ' + cfg.mods.valid + ' días.');
     return L.join('\n');
   }
@@ -995,7 +995,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     var m = cfg.mods, terms = [];
     terms.push('Adelanto del ' + m.deposit + '% (' + fmt2(r.deposit) + ') para iniciar el trabajo. El saldo se cancela contra entrega.');
     terms.push('Cotización válida por ' + m.valid + ' días, hasta el ' + dateIn(m.valid) + '.');
-    if (m.revIncluded > 0) terms.push('Incluye ' + m.revIncluded + ' rondas de revisión. Cada revisión adicional se cotiza a ' + fmt2(m.revPrice) + '.');
+    if (m.revIncluded > 0) terms.push('Incluye ' + m.revIncluded + (m.revIncluded === 1 ? ' cambio de diseño' : ' cambios de diseño') + '. Cada cambio adicional se cotiza a ' + fmt2(m.revPrice) + '.');
     terms.push('Alcance: solo diseño. La impresión y producción la cotiza la imprenta.');
     if (state.print && r.hasPrint) terms.push('Incluye archivos finales listos para imprenta: CMYK, sangrado y marcas de corte.');
     if (state.source) terms.push('Incluye la entrega de los archivos editables.');
@@ -1139,7 +1139,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     $('#lb-print').textContent = 'Preparación para imprenta (' + fmt(m.printFlat) + ')';
     $('#lb-source').textContent = 'Archivos editables (+' + m.sourcePct + '%)';
     $('#lb-igv').textContent = 'Agregar IGV (' + m.igv + '%)';
-    $('#lb-revs').textContent = 'Revisiones extra (' + fmt(m.revPrice) + ' c/u, después de ' + m.revIncluded + ' incluidas)';
+    $('#lb-revs').textContent = 'Cambios de diseño extra (' + fmt(m.revPrice) + ' c/u, después de ' + m.revIncluded + ' incluidos)';
   }
 
   function update() {
@@ -1186,8 +1186,8 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       ['urgSame', 'Entrega el mismo día', 'recargo, en %', '', '%'],
       ['sourcePct', 'Archivos editables', 'recargo, en %', '', '%'],
       ['printFlat', 'Preparación para imprenta', 'monto fijo', 'S/', ''],
-      ['revIncluded', 'Revisiones incluidas', 'sin costo extra', '', ''],
-      ['revPrice', 'Revisión extra', 'por revisión', 'S/', ''],
+      ['revIncluded', 'Cambios de diseño incluidos', 'sin costo extra', '', ''],
+      ['revPrice', 'Cambio de diseño extra', 'por cambio', 'S/', ''],
       ['igv', 'IGV', 'porcentaje', '', '%'],
       ['deposit', 'Adelanto', 'porcentaje del total', '', '%'],
       ['valid', 'Validez de la cotización', 'en días', '', 'días']
