@@ -1,0 +1,7 @@
+{
+  "speaker": "https://.../lipsync.mp4",
+  "vo": "https://.../voiceover.mp3",
+  "music": "https://.../music.mp3",
+  "sfx": {"boom": "", "pop": "", "whoosh1": "", "whoosh2": "", "riser": "", "buzzer": "", "shutter": "", "ding": ""},
+  "br": {"stopwatch": "", "smoke": "", "storyboard": "", "aiphotos": "", "timeline": "", "mixer": "", "colorgrade": "", "filmset": ""}
+}

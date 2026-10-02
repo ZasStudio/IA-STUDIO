@@ -1,0 +1,23 @@
+{
+  "name": "zas-reel",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Reel vertical 25s estilo talking-head con B-roll, subtítulos y SFX, hecho con Remotion",
+  "scripts": {
+    "assets": "bash scripts/fetch-assets.sh assets.json",
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts ZasReel out/zas-reel.mp4 --codec h264 --crf 18 --audio-codec aac --audio-bitrate 192k",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.532",
+    "@remotion/google-fonts": "4.0.532",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.532"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
+}
