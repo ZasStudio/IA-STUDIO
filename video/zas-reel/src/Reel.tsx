@@ -127,8 +127,8 @@ const HookTitle: React.FC = () => {
   const {fps} = useVideoConfig();
   const t = f / fps;
   const inn = spring({frame: f - 2, fps, config: {damping: 11, stiffness: 160}});
-  const out = interpolate(t, [5.3, 5.55], [0, 1], clamp);
-  if (t > 5.6) return null;
+  const out = interpolate(t, [4.3, 4.55], [0, 1], clamp);
+  if (t > 4.6) return null;
   return (
     <AbsoluteFill style={{alignItems: 'center', paddingTop: 150}}>
       <div
@@ -196,8 +196,20 @@ const FaseView: React.FC<{fase: Fase}> = ({fase}) => {
   const sc = interpolate(f, [0, 5], [1.7, 1], {...clamp, easing: easeOut});
   const op = interpolate(f, [0, 3], [0, 1], clamp);
   const bl = interpolate(f, [0, 5], [12, 0], clamp);
+  const scrim = interpolate(f, [0, 4], [0, 1], clamp);
   return (
     <AbsoluteFill style={{alignItems: 'center', paddingTop: fase.y - 120, fontFamily: LOB}}>
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: fase.y - 300,
+          height: 560,
+          opacity: scrim,
+          background: 'radial-gradient(ellipse 75% 50% at 50% 50%, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.45) 55%, transparent 100%)',
+        }}
+      />
       <div
         style={{
           fontSize: 150,
@@ -206,7 +218,8 @@ const FaseView: React.FC<{fase: Fase}> = ({fase}) => {
           transform: `scale(${sc}) rotate(-4deg)`,
           opacity: op,
           filter: `blur(${bl}px)`,
-          textShadow: '0 0 3px #fff, 0 0 1px #fff, 0 8px 24px rgba(0,0,0,0.5)',
+          textShadow: '0 0 4px #fff, 0 0 2px #fff, 0 8px 24px rgba(0,0,0,0.6)',
+          WebkitTextStroke: '2px #fff',
         }}
       >
         {fase.title}
@@ -272,7 +285,7 @@ const LogoChip: React.FC = () => {
   const {fps} = useVideoConfig();
   const inn = spring({frame: f, fps, config: {damping: 12, stiffness: 170}});
   return (
-    <AbsoluteFill style={{alignItems: 'center', paddingTop: 1235, fontFamily: POP}}>
+    <AbsoluteFill style={{alignItems: 'center', paddingTop: 1080, fontFamily: POP}}>
       <div
         style={{
           transform: `scale(${inn})`,
@@ -488,7 +501,7 @@ export const Reel: React.FC = () => {
           <FaseView fase={fa} />
         </Seq>
       ))}
-      <Seq a={17.0} b={18.0}>
+      <Seq a={17.0} b={17.95}>
         <LogoChip />
       </Seq>
 

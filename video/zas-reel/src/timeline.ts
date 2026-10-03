@@ -24,7 +24,7 @@ export const CAPTIONS: Caption[] = [
   {t0: 5.52, t1: 6.28, top: 'Un spot real'},
   {t0: 6.28, t1: 7.75, top: 'pasa por', bold: 'tres fases', tb: 6.9},
   {t0: 16.18, t1: 16.88, top: 'Así trabajamos'},
-  {t0: 16.88, t1: 17.95, top: 'en', bold: 'ZAS Studio', tb: 17.06},
+  {t0: 16.88, t1: 17.95, top: 'en'},
   {t0: 18.0, t1: 18.82, top: 'Síguenos'},
   {t0: 18.82, t1: 19.24, top: 'y aprende'},
   {t0: 19.24, t1: 20.02, top: 'a crear anuncios'},
