@@ -1,7 +1,7 @@
 // Timeline of the reel, in seconds. Voiceover starts at t=0 (word times come from faster-whisper).
 export const FPS = 30;
 export const DURATION_S = 25;
-export const VO_END = 20.95;
+export const VO_END = 20.85;
 export const s = (sec: number) => Math.round(sec * FPS);
 
 export type Caption = {
@@ -28,7 +28,7 @@ export const CAPTIONS: Caption[] = [
   {t0: 18.0, t1: 18.82, top: 'Síguenos'},
   {t0: 18.82, t1: 19.24, top: 'y aprende'},
   {t0: 19.24, t1: 20.02, top: 'a crear anuncios'},
-  {t0: 20.02, t1: 20.95, top: 'que', bold: 'sí venden', tb: 20.16},
+  {t0: 20.02, t1: 20.85, top: 'que', bold: 'sí venden', tb: 20.16},
 ];
 
 export type Fase = {t0: number; t1: number; title: string; y: number; parts: {t: number; text: string}[]};
@@ -90,8 +90,8 @@ export const SFX: Sfx[] = [
   {f: 'ding', t: 17.06, v: 0.55},
   {f: 'whoosh1', t: 17.92, v: 0.7},
   {f: 'whoosh2', t: 19.2, v: 0.6},
-  {f: 'whoosh1', t: 20.9, v: 0.8},
-  {f: 'boom', t: 21.0, v: 0.7},
+  {f: 'whoosh1', t: 20.8, v: 0.8},
+  {f: 'boom', t: 20.9, v: 0.7},
   ...Array.from({length: 11}, (_, i) => ({f: 'pop', t: 21.9 + i * 0.09, v: 0.18, d: 0.12})),
   {f: 'ding', t: 23.4, v: 0.7},
 ];

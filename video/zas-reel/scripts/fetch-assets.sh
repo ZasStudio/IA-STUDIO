@@ -14,7 +14,10 @@ curl -sfL -o public/audio/music.mp3 "$(get "['music']")"
 for n in $(python3 -c "import json;print(' '.join(json.load(open('$M'))['sfx']))"); do
   curl -sfL -o tmp/$n.mp3 "$(get "['sfx']['$n']")"
   # trim leading silence so every hit lands on its frame
-  ffmpeg -v error -y -i tmp/$n.mp3 -af "silenceremove=start_periods=1:start_threshold=-42dB" public/sfx/$n.mp3
+  ffmpeg -v error -y -i tmp/$n.mp3 -af "silenceremove=start_periods=1:start_threshold=-50dB" public/sfx/$n.mp3
+  # quiet clips can be swallowed whole by the trim: keep the original then
+  d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 public/sfx/$n.mp3 2>/dev/null || echo 0)
+  python3 -c "import sys;sys.exit(0 if float('${d:-0}' or 0)>0.15 else 1)" || cp tmp/$n.mp3 public/sfx/$n.mp3
 done
 for n in $(python3 -c "import json;print(' '.join(json.load(open('$M'))['br']))"); do
   curl -sfL -o public/br/$n.mp4 "$(get "['br']['$n']")"
