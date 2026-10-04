@@ -260,7 +260,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
 .rc-actions #copy { flex-basis: 100%; }
 .sample-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 /* Proforma libre: una fila por trabajo */
-.pf-head, .pf-row { display: grid; grid-template-columns: minmax(0, 1fr) 74px 128px 92px auto; gap: 8px; align-items: start; }
+.pf-head, .pf-row { display: grid; grid-template-columns: minmax(0, 1fr) 74px 128px 92px 64px; gap: 8px; align-items: start; }
 .pf-head { font-size: 12px; font-weight: 600; color: var(--ink-2); padding-inline: 2px; }
 .pf-head span:nth-child(n+2) { text-align: right; }
 .pf-list { display: flex; flex-direction: column; gap: 12px; }
@@ -270,9 +270,15 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
 .pf-qty { text-align: right; }
 .pf-amt { align-self: center; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 .pf-row .ghost { align-self: center; }
+.pf-head.pf-simple, .pf-simple .pf-row { grid-template-columns: minmax(0, 1fr) 150px 64px; }
+.pf-hf, .pf-simple .pf-amt, .pf-head.pf-simple .pf-hq, .pf-head.pf-simple .pf-ha, .pf-head.pf-simple .pf-hu { display: none; }
+.pf-head.pf-simple .pf-hf { display: inline; }
+.pf-simple .pf-qty { display: none; }
 @media (max-width: 640px) {
   .pf-head { display: none; }
-  .pf-row { grid-template-columns: 70px minmax(0, 1fr) auto; }
+  .pf-row, .pf-simple .pf-row { grid-template-columns: 70px minmax(0, 1fr) auto; }
+  .pf-simple .pf-price { grid-column: 1 / 3; }
+  .pf-simple .pf-row .ghost { grid-row: auto; }
   .pf-desc { grid-column: 1 / -1; }
   .pf-amt { grid-column: 1 / 3; text-align: left; }
   .pf-row .ghost { grid-column: 3; grid-row: 3; }
@@ -533,10 +539,17 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
         <section class="panel" aria-labelledby="h-pf-items">
           <header class="panel-head">
             <span class="step-n" aria-hidden="true">2</span>
-            <div><h2 id="h-pf-items">Trabajos</h2><p class="sub">Cada línea con su descripción, un detalle opcional, la cantidad y el precio unitario.</p></div>
+            <div><h2 id="h-pf-items">Trabajos</h2><p class="sub">Escribe cada trabajo con su precio. Si necesitas cantidades, cambia a cantidad × precio.</p></div>
           </header>
           <div class="panel-body">
-            <div class="pf-head" aria-hidden="true"><span>Descripción</span><span>Cant.</span><span>P. unit.</span><span>Importe</span><span></span></div>
+            <fieldset>
+              <legend>Cómo se muestran los precios</legend>
+              <div class="seg">
+                <input type="radio" name="pfmode" id="pf-mode-simple" value="simple"><label for="pf-mode-simple">Precio final por ítem</label>
+                <input type="radio" name="pfmode" id="pf-mode-qty" value="qty"><label for="pf-mode-qty">Cantidad × precio</label>
+              </div>
+            </fieldset>
+            <div class="pf-head" id="pf-headrow" aria-hidden="true"><span>Descripción</span><span class="pf-hq">Cant.</span><span><span class="pf-hu">P. unit.</span><span class="pf-hf">Precio</span></span><span class="pf-ha">Importe</span><span></span></div>
             <div class="pf-list" id="pf-list"></div>
             <p class="empty-hint" id="pf-empty" hidden>Aún no hay trabajos. Agrega el primero.</p>
             <div><button class="btn" type="button" id="pf-add">Agregar trabajo</button></div>
@@ -554,6 +567,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
               <label class="field"><span>Adelanto</span><span class="num" style="width:110px"><input type="number" id="pf-deposit" inputmode="decimal" min="0" max="100" step="5" aria-label="Adelanto en porcentaje"><span class="affix">%</span></span></label>
             </div>
             <div class="opts">
+              <label class="opt" for="pf-post"><input type="checkbox" id="pf-post"><span><span class="t">Cobro por modificaciones después de la entrega</span><span class="d" id="d-pf-post"></span></span></label>
               <label class="opt" for="pf-igv"><input type="checkbox" id="pf-igv"><span><span class="t" id="lb-pf-igv">Agregar IGV</span><span class="d">Actívalo si vas a emitir factura.</span></span></label>
             </div>
             <label class="field"><span>Condiciones (una por línea)</span><textarea id="pf-terms" rows="4"></textarea></label>
@@ -681,7 +695,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
   var FACTORY = {
     prices: {},
     tiers: { t2: 150, t4: 300, t6: 450, t8: 560, extra: 55 },
-    mods: { tierMicro: 1, tierPyme: 1.4, tierEmpresa: 2.2, hourly: 50, revIncluded: 2, revPrice: 20, sourcePct: 15, printFlat: 15, cxBasic: -10, cxComplex: 25, urgExpress: 25, urgSame: 40, igv: 18, deposit: 50, valid: 7 }
+    mods: { tierMicro: 1, tierPyme: 1.4, tierEmpresa: 2.2, hourly: 50, revIncluded: 2, revPrice: 20, postSimple: 15, postMedium: 25, postComplex: 40, sourcePct: 15, printFlat: 15, cxBasic: -10, cxComplex: 25, urgExpress: 25, urgSame: 40, igv: 18, deposit: 50, valid: 7 }
   };
   CATALOG.forEach(function (g) { g.items.forEach(function (i) { if (i.price != null) FACTORY.prices[i.id] = i.price; }); });
   /* Rangos publicados en Perú: [mínimo, máximo, rótulo opcional] */
@@ -929,6 +943,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     L.push('Saldo contra entrega: ' + fmt(r.balance));
     L.push('Incluye solo el diseño y los archivos listos para imprenta. La impresión la cotiza la imprenta.');
     if (cfg.mods.revIncluded > 0) L.push('Incluye ' + cfg.mods.revIncluded + (cfg.mods.revIncluded === 1 ? ' cambio de diseño' : ' cambios de diseño') + '. Cada cambio extra: ' + fmt(cfg.mods.revPrice) + '.');
+    L.push(postTerm());
     L.push('Válida por ' + cfg.mods.valid + ' días.');
     return L.join('\n');
   }
@@ -1012,12 +1027,12 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     y = Math.max(yL, yR) + 40;
 
     /* Tabla */
-    var cD = L + 24, cQ = 750, cU = 960, cA = R - 24, descW = 580;
+    var cD = L + 24, cQ = 750, cU = 960, cA = R - 24, descW = d.simple ? 820 : 580;
     ctx.fillStyle = IC.green; ctx.fillRect(L, y, R - L, 60);
     ctx.fillStyle = IC.polar; ctx.font = '600 17px ' + BODY; spacing(2.2);
     ctx.textAlign = 'left'; ctx.fillText('DESCRIPCIÓN', cD, y + 38);
-    ctx.textAlign = 'center'; ctx.fillText('CANT.', cQ, y + 38);
-    ctx.textAlign = 'right'; ctx.fillText('P. UNIT.', cU, y + 38); ctx.fillText('IMPORTE', cA, y + 38);
+    if (!d.simple) { ctx.textAlign = 'center'; ctx.fillText('CANT.', cQ, y + 38); ctx.textAlign = 'right'; ctx.fillText('P. UNIT.', cU, y + 38); }
+    ctx.textAlign = 'right'; ctx.fillText(d.simple ? 'PRECIO' : 'IMPORTE', cA, y + 38);
     spacing(0);
     y += 60;
     function row(title, note, qty, unit, amt) {
@@ -1038,7 +1053,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       ctx.fillStyle = IC.line; ctx.fillRect(L, y + h - 2, R - L, 2);
       y += h;
     }
-    d.rows.forEach(function (r) { row(r.name, r.note, r.qty, r.unit, fmt2(r.amount)); });
+    d.rows.forEach(function (r) { row(r.name, r.note, d.simple ? null : r.qty, d.simple ? null : r.unit, fmt2(r.amount)); });
     d.adj.forEach(function (a) { row(a.label, '', null, null, fmt2s(a.amount)); });
 
     /* Totales (derecha) y condiciones (izquierda) */
@@ -1104,12 +1119,18 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     t.setDate(t.getDate() + days);
     return t.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Lima' });
   }
+  /* Condición de cobro por modificaciones después de entregar el diseño final */
+  function postTerm() {
+    var m = cfg.mods;
+    return 'Después de entregar el diseño final, toda modificación posterior de texto o de imagen se cobra aparte según su complejidad: simple ' + fmt2(m.postSimple) + ' (texto, precio o fecha), media ' + fmt2(m.postMedium) + ' (cambio de imagen o reacomodo) y compleja desde ' + fmt2(m.postComplex) + '.';
+  }
   function quoteData(r) {
     var m = cfg.mods, terms = [];
     terms.push('Adelanto del ' + m.deposit + '% (' + fmt2(r.deposit) + ') para iniciar el trabajo. El saldo se cancela contra entrega.');
     terms.push('Cotización válida por ' + m.valid + ' días, hasta el ' + dateIn(m.valid) + '.');
     if (m.revIncluded > 0) terms.push('Incluye ' + m.revIncluded + (m.revIncluded === 1 ? ' cambio de diseño' : ' cambios de diseño') + '. Cada cambio adicional se cotiza a ' + fmt2(m.revPrice) + '.');
     terms.push('Alcance: solo diseño. La impresión y producción la cotiza la imprenta.');
+    terms.push(postTerm());
     if (state.print && r.hasPrint) terms.push('Incluye archivos finales listos para imprenta: CMYK, sangrado y marcas de corte.');
     if (state.source) terms.push('Incluye la entrega de los archivos editables.');
     terms.push('Montos en soles (S/). ' + (state.igv ? 'Incluyen IGV.' : 'No incluyen IGV.'));
@@ -1319,6 +1340,9 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       ['printFlat', 'Preparación para imprenta', 'monto fijo', 'S/', ''],
       ['revIncluded', 'Cambios de diseño incluidos', 'sin costo extra', '', ''],
       ['revPrice', 'Cambio de diseño extra', 'por cambio', 'S/', ''],
+      ['postSimple', 'Modificación posterior simple', 'tras la entrega: texto, precio, fecha o teléfono', 'S/', ''],
+      ['postMedium', 'Modificación posterior media', 'tras la entrega: cambio de imagen o reacomodo', 'S/', ''],
+      ['postComplex', 'Modificación posterior compleja', 'tras la entrega: rediseño de una parte; es el mínimo', 'S/', ''],
       ['igv', 'IGV', 'porcentaje', '', '%'],
       ['deposit', 'Adelanto', 'porcentaje del total', '', '%'],
       ['valid', 'Validez de la cotización', 'en días', '', 'días']
@@ -1522,10 +1546,10 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     title: 'Proforma', client: 'Café La Esquina (ejemplo)', project: 'Señalética del local', ruc: '', number: 1, valid: 7,
     items: [
       { name: 'Diseño de letrero de fachada', note: 'Dos propuestas y versión final para imprenta.', qty: 1, price: 180 },
-      { name: 'Adaptación del letrero a otras medidas', note: 'Vinil de puerta, banner y toldo.', qty: 3, price: 20 },
+      { name: 'Adaptación del letrero a 3 medidas', note: 'Vinil de puerta, banner y toldo.', qty: 1, price: 60 },
       { name: 'Menú de pizarra ilustrado', note: '', qty: 1, price: 120 }
     ],
-    discount: 0, deposit: 50, igv: false, terms: PF_TERMS
+    discount: 0, deposit: 50, igv: false, terms: PF_TERMS, simple: true, post: true
   };
   var pf = clone(PF_SAMPLE);
   try {
@@ -1543,7 +1567,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
   function pfCalc() {
     var lines = [];
     pf.items.forEach(function (it) {
-      var q = Math.max(0, pfNum(it.qty)), p = Math.max(0, pfNum(it.price));
+      var q = pf.simple ? 1 : Math.max(0, pfNum(it.qty)), p = Math.max(0, pfNum(it.price));
       if (q > 0 && p > 0 && String(it.name).trim()) lines.push({ name: String(it.name).trim(), note: String(it.note || '').trim(), qty: q, unit: p, amount: Math.round(q * p * 100) / 100, label: String(it.name).trim() + (q !== 1 ? ' × ' + numEs(q) : '') });
     });
     var subtotal = lines.reduce(function (s, l) { return s + l.amount; }, 0);
@@ -1562,9 +1586,10 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     if (r.depPct > 0) terms.push(r.depPct >= 100 ? 'Pago del 100% (' + fmt2(r.total) + ') para iniciar el trabajo.' : 'Adelanto del ' + numEs(r.depPct) + '% (' + fmt2(r.deposit) + ') para iniciar el trabajo. El saldo se cancela contra entrega.');
     terms.push(pf.title + ' válida por ' + valid + ' días, hasta el ' + dateIn(valid) + '.');
     String(pf.terms || '').split('\n').forEach(function (t) { t = t.trim(); if (t) terms.push(t); });
+    if (pf.post) terms.push(postTerm());
     terms.push('Montos en soles (S/). ' + (pf.igv ? 'Incluyen IGV.' : 'No incluyen IGV.'));
     return {
-      title: pf.title, studio: state.studio.trim() || 'ZAS Studio', contact: state.contact.trim(), pay: state.pay.trim(),
+      title: pf.title, simple: pf.simple, studio: state.studio.trim() || 'ZAS Studio', contact: state.contact.trim(), pay: state.pay.trim(),
       num: pad(pf.number), date: today(), until: dateIn(valid),
       client: String(pf.client).trim() || 'Cliente', ruc: String(pf.ruc).trim(), project: String(pf.project).trim(),
       rows: r.lines, adj: [], subtotal: r.subtotal, disc: r.disc, discPct: r.discPct,
@@ -1588,7 +1613,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     var r = pfLast = pfCalc();
     $$('#pf-list .pf-row').forEach(function (row) {
       var it = pf.items[parseInt(row.dataset.i, 10)];
-      var a = Math.max(0, pfNum(it.qty)) * Math.max(0, pfNum(it.price));
+      var a = (pf.simple ? 1 : Math.max(0, pfNum(it.qty))) * Math.max(0, pfNum(it.price));
       $('[data-amt]', row).textContent = a > 0 ? fmt(a) : '—';
     });
     $('#pf-rc-num').textContent = pf.title + ' N° ' + pad(pf.number);
@@ -1610,6 +1635,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     $('#pf-rc-dep').textContent = fmt(r.deposit);
     $('#pf-rc-bal').textContent = fmt(r.balance);
     $('#lb-pf-igv').textContent = 'Agregar IGV (' + cfg.mods.igv + '%)';
+    $('#d-pf-post').textContent = 'Simple ' + fmt(cfg.mods.postSimple) + ', media ' + fmt(cfg.mods.postMedium) + ', compleja desde ' + fmt(cfg.mods.postComplex) + '. Los montos se cambian en Tarifas.';
     $('#pf-genimg').disabled = !has;
     $('#pf-genpdf').disabled = !has;
     pfSave();
@@ -1620,6 +1646,8 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     $('#pf-number').value = pf.number; $('#pf-valid').value = pf.valid;
     $('#pf-discount').value = pf.discount; $('#pf-deposit').value = pf.deposit; $('#pf-igv').checked = pf.igv;
     $('#pf-terms').value = pf.terms;
+    $('#pf-mode-' + (pf.simple ? 'simple' : 'qty')).checked = true; $('#pf-post').checked = pf.post;
+    $('#pf-list').classList.toggle('pf-simple', pf.simple); $('#pf-headrow').classList.toggle('pf-simple', pf.simple);
     pfRenderItems(); pfUpdate();
   }
   if (['Proforma', 'Cotización', 'Presupuesto'].indexOf(pf.title) < 0) pf.title = 'Proforma';
@@ -1632,6 +1660,8 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
   $('#pf-discount').addEventListener('input', function (e) { pf.discount = Math.max(0, Math.min(100, pfNum(e.target.value))); pfUpdate(); });
   $('#pf-deposit').addEventListener('input', function (e) { pf.deposit = Math.max(0, Math.min(100, pfNum(e.target.value))); pfUpdate(); });
   $('#pf-igv').addEventListener('change', function (e) { pf.igv = e.target.checked; pfUpdate(); });
+  $('#pf-post').addEventListener('change', function (e) { pf.post = e.target.checked; pfUpdate(); });
+  $$('input[name="pfmode"]').forEach(function (r) { r.addEventListener('change', function () { pf.simple = r.value === 'simple'; pfSync(); }); });
   $('#pf-list').addEventListener('input', function (e) {
     var f = e.target.dataset.f, row = e.target.closest('.pf-row');
     if (!f || !row) return;
@@ -1651,7 +1681,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     if (n) n.focus();
   });
   $('#pf-clear').addEventListener('click', function () {
-    pf = { title: 'Proforma', client: '', project: '', ruc: '', number: pf.number, valid: 7, items: [{ name: '', note: '', qty: 1, price: 0 }], discount: 0, deposit: 50, igv: false, terms: PF_TERMS };
+    pf = { title: 'Proforma', client: '', project: '', ruc: '', number: pf.number, valid: 7, items: [{ name: '', note: '', qty: 1, price: 0 }], discount: 0, deposit: 50, igv: false, terms: PF_TERMS, simple: pf.simple, post: pf.post };
     pfSync(); $('#pf-client').focus();
   });
   /* Copia las líneas del cotizador (con sus ajustes) como trabajos editables */
