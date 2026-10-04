@@ -259,6 +259,11 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
 .rc-actions .btn.cta { flex: 2 1 auto; }
 .rc-actions #copy { flex-basis: 100%; }
 .sample-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-row.cf-row { grid-template-columns: minmax(0, 1fr) 64px; }
+.cf-ok { color: var(--ok); font-family: var(--font-body); font-size: 13px; font-weight: 600; }
+.cf-ok::before { content: "✓ "; }
+input[type="date"] { width: 100%; min-width: 0; font-size: 16px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--field); font-family: inherit; color: inherit; }
+input[type="date"]:focus { outline: 2px solid var(--ring); outline-offset: 0; border-color: var(--ring); background: var(--card); }
 /* Proforma libre: una fila por trabajo */
 .pf-head, .pf-row { display: grid; grid-template-columns: minmax(0, 1fr) 74px 128px 92px 64px; gap: 8px; align-items: start; }
 .pf-head { font-size: 12px; font-weight: 600; color: var(--ink-2); padding-inline: 2px; }
@@ -283,6 +288,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
   .pf-amt { grid-column: 1 / 3; text-align: left; }
   .pf-row .ghost { grid-column: 3; grid-row: 3; }
 }
+@media (max-width: 640px) { .pf-row.cf-row { grid-template-columns: minmax(0, 1fr) auto; } .pf-row.cf-row .pf-desc { grid-column: 1; } .pf-row.cf-row .ghost { grid-column: 2; grid-row: 1; } }
 .fallback { width: 100%; min-height: 150px; font: 13px/1.45 var(--font-mono); padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--field); }
 
 /* Barra inferior móvil */
@@ -342,6 +348,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .panel, .rate-group, .sources, .receipt, .sheet { background: var(--glass-strong); }
 }
+@media (max-width: 560px) { .tabs { width: 100%; } .tab { flex: 1 1 0; min-width: 0; padding-inline: 4px; font-size: 13px; } }
 </style>
 
 </head>
@@ -358,6 +365,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     <nav class="tabs" role="tablist" aria-label="Secciones">
       <button class="tab" role="tab" id="tab-quote" aria-selected="true" aria-controls="view-quote" type="button">Cotizar</button>
       <button class="tab" role="tab" id="tab-pf" aria-selected="false" aria-controls="view-pf" type="button">Proforma</button>
+      <button class="tab" role="tab" id="tab-cf" aria-selected="false" aria-controls="view-cf" type="button">Conformidad</button>
       <button class="tab" role="tab" id="tab-rates" aria-selected="false" aria-controls="view-rates" type="button">Tarifas</button>
     </nav>
   </div>
@@ -596,6 +604,102 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
             <div class="rc-actions">
               <button class="btn cta" type="button" id="pf-genimg">Generar imagen</button>
               <button class="btn primary" type="button" id="pf-genpdf">Descargar PDF</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="view-cf" role="tabpanel" aria-labelledby="tab-cf" hidden>
+    <div class="cols">
+      <div class="build">
+        <div class="sample">
+          <p><strong>Conformidad de entrega:</strong> el comprobante de que el diseño se entregó completo y el cliente lo acepta. No es un recibo por honorarios.</p>
+          <div class="sample-actions"><button class="btn" type="button" id="cf-from-pf">Copiar de la proforma</button><button class="btn" type="button" id="cf-from-quote">Copiar del cotizador</button><button class="btn" type="button" id="cf-clear">Empezar de cero</button></div>
+        </div>
+
+        <section class="panel" aria-labelledby="h-cf-datos">
+          <header class="panel-head">
+            <span class="step-n" aria-hidden="true">1</span>
+            <div><h2 id="h-cf-datos">Cliente y fechas</h2><p class="sub">Para quién fue el trabajo y cuándo empezó y terminó.</p></div>
+          </header>
+          <div class="panel-body">
+            <div class="fields">
+              <label class="field"><span>Cliente</span><input type="text" id="cf-client" autocomplete="off" placeholder="Nombre o negocio"></label>
+              <label class="field"><span>Proyecto</span><input type="text" id="cf-project" autocomplete="off"></label>
+              <label class="field"><span>RUC o DNI del cliente (opcional)</span><input type="text" id="cf-ruc" autocomplete="off" spellcheck="false"></label>
+              <label class="field narrow"><span>N° de documento</span><input type="number" id="cf-number" inputmode="numeric" min="1"></label>
+            </div>
+            <div class="fields">
+              <label class="field"><span>Fecha de inicio</span><input type="date" id="cf-start"></label>
+              <label class="field"><span>Fecha de entrega</span><input type="date" id="cf-end"></label>
+              <label class="field"><span>Entregado vía (opcional)</span><input type="text" id="cf-via" autocomplete="off" placeholder="Ej. Google Drive y WhatsApp"></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-cf-items">
+          <header class="panel-head">
+            <span class="step-n" aria-hidden="true">2</span>
+            <div><h2 id="h-cf-items">Lo que se entregó</h2><p class="sub">Cada pieza entregada, con el detalle que quieras: formatos, medidas o archivos.</p></div>
+          </header>
+          <div class="panel-body">
+            <div class="pf-list" id="cf-list"></div>
+            <p class="empty-hint" id="cf-empty" hidden>Aún no hay piezas. Agrega la primera o cópialas de la proforma.</p>
+            <div><button class="btn" type="button" id="cf-add">Agregar pieza entregada</button></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-cf-pagos">
+          <header class="panel-head">
+            <span class="step-n" aria-hidden="true">3</span>
+            <div><h2 id="h-cf-pagos">Pagos recibidos</h2><p class="sub">Lo que te pagó al inicio y al final. Si falta algo, escribe el monto acordado.</p></div>
+          </header>
+          <div class="panel-body">
+            <div class="inline-fields">
+              <label class="field"><span>Adelanto recibido</span><span class="num" style="width:150px"><span class="affix">S/</span><input type="number" id="cf-paid-start" inputmode="decimal" min="0" step="5"></span></label>
+              <label class="field"><span>Pago final recibido</span><span class="num" style="width:150px"><span class="affix">S/</span><input type="number" id="cf-paid-end" inputmode="decimal" min="0" step="5"></span></label>
+              <label class="field"><span>Monto acordado (opcional)</span><span class="num" style="width:150px"><span class="affix">S/</span><input type="number" id="cf-agreed" inputmode="decimal" min="0" step="5" placeholder="igual a lo pagado"></span></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-cf-decl">
+          <header class="panel-head">
+            <span class="step-n" aria-hidden="true">4</span>
+            <div><h2 id="h-cf-decl">Declaración y mensaje</h2><p class="sub">Lo que el cliente acepta al recibir el trabajo. Una idea por línea.</p></div>
+          </header>
+          <div class="panel-body">
+            <label class="field"><span>Declaración de conformidad</span><textarea id="cf-terms" rows="5"></textarea></label>
+            <div class="opts">
+              <label class="opt" for="cf-post"><input type="checkbox" id="cf-post"><span><span class="t">Cobro por modificaciones después de la entrega</span><span class="d" id="d-cf-post"></span></span></label>
+            </div>
+            <label class="field"><span>Mensaje del pie</span><input type="text" id="cf-thanks" autocomplete="off"></label>
+          </div>
+        </section>
+      </div>
+
+      <aside class="receipt-wrap" aria-label="Resumen de la conformidad">
+        <div class="receipt">
+          <div class="rc-top">
+            <div class="rc-head"><span id="cf-rc-num"></span><span id="cf-rc-date"></span></div>
+            <div class="rc-client" id="cf-rc-client"></div><div class="rc-project" id="cf-rc-project"></div>
+          </div>
+          <div class="rc-main">
+            <div id="cf-rc-empty" class="rc-empty" hidden>Agrega las piezas entregadas y aparecen aquí.</div>
+            <ul class="rc-lines cf-lines" id="cf-rc-lines"></ul>
+            <div class="total-block" aria-live="polite">
+              <div class="total-top"><span class="total-label">Total pagado</span><span class="total-amount" id="cf-rc-total">S/ 0</span></div>
+              <div class="total-split">
+                <div><span>Adelanto</span><span id="cf-rc-start">S/ 0</span></div>
+                <div><span>Pago final</span><span id="cf-rc-end">S/ 0</span></div>
+                <div><span id="cf-rc-status-l">Estado</span><span id="cf-rc-status">Cancelado</span></div>
+              </div>
+            </div>
+            <div class="rc-actions">
+              <button class="btn cta" type="button" id="cf-genimg">Generar imagen</button>
+              <button class="btn primary" type="button" id="cf-genpdf">Descargar PDF</button>
             </div>
           </div>
         </div>
@@ -984,6 +1088,149 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     ctx.fillStyle = g2; ctx.fillRect(x, y, w, h);
     ctx.restore();
   }
+  /* Conformidad de entrega: mismo lenguaje visual, sin precios por ítem; pagos recibidos y firmas */
+  function drawDelivery(ctx, d, H) {
+    var W = IMG_W, L = IM, R = W - IM, y;
+    function spacing(px) { try { ctx.letterSpacing = px + 'px'; } catch (e) { /* sin soporte */ } }
+    function label(txt, x, yy, align) { ctx.textAlign = align || 'left'; ctx.fillStyle = IC.green; ctx.font = '700 16px ' + BODY; spacing(2.4); ctx.fillText(txt, x, yy); spacing(0); }
+
+    ctx.fillStyle = IC.white; ctx.fillRect(0, 0, W, H);
+    ctx.textBaseline = 'alphabetic';
+
+    /* Cabecera */
+    glow(ctx, 0, 0, W, HEAD_H);
+    if (logoImg.complete && logoImg.naturalWidth) {
+      var lh = 54, lw = Math.round(lh * logoImg.naturalWidth / logoImg.naturalHeight);
+      ctx.drawImage(logoImg, L, 86, lw, lh);
+    } else {
+      ctx.textAlign = 'left'; ctx.fillStyle = IC.polar; ctx.font = '700 64px ' + SERIF; ctx.fillText('ZAS', L, 140);
+    }
+    ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(230,251,246,0.78)'; ctx.font = '400 21px ' + BODY;
+    ctx.fillText('Diseño gráfico y contenido creativo', L, 186);
+    ctx.textAlign = 'right'; ctx.fillStyle = IC.polar; ctx.font = '600 54px ' + SERIF; spacing(-1.5);
+    ctx.fillText('Conformidad', R, 112); ctx.fillText('de entrega', R, 170); spacing(0);
+    ctx.fillStyle = IC.emerald; ctx.font = '600 25px ' + MONO; spacing(1.5); ctx.fillText('N° ' + d.num, R, 218); spacing(0);
+    ctx.fillStyle = IC.emerald; ctx.fillRect(0, HEAD_H, W, 5);
+
+    /* Cliente y fechas */
+    y = HEAD_H + 76;
+    var yL = y + 46, cx = 740;
+    label('CLIENTE', L, y);
+    ctx.textAlign = 'left'; ctx.fillStyle = IC.ink; ctx.font = '600 38px ' + SERIF;
+    wrapText(ctx, d.client, 560).slice(0, 2).forEach(function (ln) { ctx.fillText(ln, L, yL); yL += 46; });
+    if (d.ruc) { ctx.fillStyle = IC.ink2; ctx.font = '500 21px ' + MONO; ctx.fillText('RUC/DNI: ' + d.ruc, L, yL - 4); yL += 34; }
+    if (d.project) {
+      yL += 12; label('PROYECTO', L, yL); yL += 36;
+      ctx.textAlign = 'left'; ctx.fillStyle = IC.ink; ctx.font = '500 25px ' + BODY;
+      wrapText(ctx, d.project, 560).slice(0, 3).forEach(function (ln) { ctx.fillText(ln, L, yL); yL += 34; });
+    }
+    var yR = y;
+    [['FECHA DE INICIO', d.start], ['FECHA DE ENTREGA', d.end]].forEach(function (f) {
+      if (!f[1]) return;
+      label(f[0], cx, yR);
+      ctx.textAlign = 'left'; ctx.fillStyle = IC.ink; ctx.font = '600 28px ' + MONO; ctx.fillText(f[1], cx, yR + 42);
+      yR += 100;
+    });
+    if (d.via) {
+      label('ENTREGADO VÍA', cx, yR);
+      ctx.textAlign = 'left'; ctx.fillStyle = IC.ink; ctx.font = '500 23px ' + BODY;
+      wrapText(ctx, d.via, R - cx).slice(0, 2).forEach(function (ln, i) { ctx.fillText(ln, cx, yR + 40 + i * 30); });
+      yR += 100;
+    }
+    y = Math.max(yL, yR - 50) + 40;
+
+    /* Trabajos entregados */
+    var cD = L + 24, cA = R - 24, descW = 760;
+    ctx.fillStyle = IC.green; ctx.fillRect(L, y, R - L, 60);
+    ctx.fillStyle = IC.polar; ctx.font = '600 17px ' + BODY; spacing(2.2);
+    ctx.textAlign = 'left'; ctx.fillText('TRABAJOS ENTREGADOS', cD, y + 38);
+    ctx.textAlign = 'right'; ctx.fillText('ESTADO', cA, y + 38);
+    spacing(0);
+    y += 60;
+    d.items.forEach(function (it) {
+      ctx.font = '600 25px ' + BODY;
+      var nl = wrapText(ctx, it.name, descW);
+      ctx.font = '400 20px ' + BODY;
+      var tl = it.note ? wrapText(ctx, it.note, descW).slice(0, 3) : [];
+      var h = Math.max(76, 22 + nl.length * 32 + (tl.length ? tl.length * 26 + 2 : 0) + 22);
+      var ty = y + 47;
+      ctx.textAlign = 'left'; ctx.fillStyle = IC.ink; ctx.font = '600 25px ' + BODY;
+      nl.forEach(function (ln, i) { ctx.fillText(ln, cD, ty + i * 32); });
+      ctx.fillStyle = IC.ink2; ctx.font = '400 20px ' + BODY;
+      tl.forEach(function (ln, i) { ctx.fillText(ln, cD, ty + nl.length * 32 - 4 + i * 26); });
+      /* Marca de entregado */
+      ctx.textAlign = 'right'; ctx.fillStyle = IC.green; ctx.font = '600 21px ' + BODY;
+      ctx.fillText('Entregado', cA, ty);
+      var tw = ctx.measureText('Entregado').width, ccx = cA - tw - 22, ccy = ty - 8;
+      ctx.fillStyle = IC.emerald; ctx.beginPath(); ctx.arc(ccx, ccy, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = IC.night; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(ccx - 5.5, ccy); ctx.lineTo(ccx - 1.5, ccy + 4.5); ctx.lineTo(ccx + 6, ccy - 4.5); ctx.stroke();
+      ctx.fillStyle = IC.line; ctx.fillRect(L, y + h - 2, R - L, 2);
+      y += h;
+    });
+
+    /* Declaración (izquierda) y pagos (derecha) */
+    y += 40;
+    var yL2 = y, yR2 = y, tx = 690;
+    function trow(lbl, val, strong) {
+      ctx.textAlign = 'left'; ctx.fillStyle = strong ? IC.ink : IC.ink2; ctx.font = (strong ? '600' : '500') + ' 23px ' + BODY; ctx.fillText(lbl, tx, yR2 + 30);
+      ctx.textAlign = 'right'; ctx.fillStyle = IC.ink; ctx.font = (strong ? '600' : '500') + ' 23px ' + MONO; ctx.fillText(val, R, yR2 + 30);
+      yR2 += 46;
+    }
+    label('PAGOS RECIBIDOS', tx, yR2 + 26); yR2 += 44;
+    trow('Adelanto' + (d.start ? ' (' + d.start + ')' : ''), fmt2(d.paidStart));
+    trow('Pago final' + (d.end ? ' (' + d.end + ')' : ''), fmt2(d.paidEnd));
+    yR2 += 10;
+    glow(ctx, tx, yR2, R - tx, 112);
+    ctx.fillStyle = IC.emerald; ctx.textAlign = 'left'; ctx.font = '600 17px ' + BODY; spacing(3); ctx.fillText('TOTAL PAGADO', tx + 28, yR2 + 64); spacing(0);
+    ctx.fillStyle = IC.polar; ctx.textAlign = 'right'; ctx.font = '700 42px ' + SERIF; spacing(-1); ctx.fillText(fmt2(d.paid), R - 28, yR2 + 70); spacing(0);
+    yR2 += 112 + 24;
+    if (d.pending > 0) trow('Saldo pendiente', fmt2(d.pending), true);
+    else {
+      /* Sello de cancelado */
+      ctx.font = '700 18px ' + BODY; spacing(3);
+      var st = 'CANCELADO', sw = ctx.measureText(st).width + 40;
+      ctx.strokeStyle = IC.green; ctx.lineWidth = 2.5; ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(R - sw, yR2 + 4, sw, 44, 22); else ctx.rect(R - sw, yR2 + 4, sw, 44);
+      ctx.stroke();
+      ctx.fillStyle = IC.green; ctx.textAlign = 'center'; ctx.fillText(st, R - sw / 2, yR2 + 33); spacing(0);
+      yR2 += 64;
+    }
+
+    label('DECLARACIÓN DE CONFORMIDAD', L, yL2 + 26);
+    yL2 += 66;
+    d.terms.forEach(function (t) {
+      ctx.font = '400 21px ' + BODY;
+      var ls = wrapText(ctx, t, 520);
+      ctx.fillStyle = IC.emerald; ctx.fillRect(L, yL2 - 14, 9, 9);
+      ctx.textAlign = 'left'; ctx.fillStyle = IC.ink; ctx.font = '400 21px ' + BODY;
+      ls.forEach(function (ln, i) { ctx.fillText(ln, L + 26, yL2 + i * 29); });
+      yL2 += ls.length * 29 + 12;
+    });
+
+    /* Firmas */
+    y = Math.max(yL2, yR2) + 90;
+    var sw2 = 440;
+    [[L, 'CONFORMIDAD DEL CLIENTE', d.client, d.ruc ? 'RUC/DNI: ' + d.ruc : ''], [R - sw2, 'ENTREGADO POR', d.studio, d.contact || 'Diseño y entrega']].forEach(function (s) {
+      ctx.fillStyle = IC.ink; ctx.fillRect(s[0], y, sw2, 2);
+      label(s[1], s[0], y + 34);
+      ctx.textAlign = 'left'; ctx.fillStyle = IC.ink; ctx.font = '600 23px ' + BODY;
+      ctx.fillText(wrapText(ctx, s[2], sw2)[0] || '', s[0], y + 70);
+      if (s[3]) { ctx.fillStyle = IC.ink2; ctx.font = '500 19px ' + MONO; ctx.fillText(s[3], s[0], y + 100); }
+    });
+    y += 140;
+    ctx.textAlign = 'left'; ctx.fillStyle = IC.ink2; ctx.font = '400 18px ' + BODY;
+    wrapText(ctx, 'Este documento acredita la entrega y la conformidad del trabajo. No es un comprobante de pago ni un recibo por honorarios.', R - L).forEach(function (ln) { ctx.fillText(ln, L, y); y += 26; });
+
+    /* Pie */
+    glow(ctx, 0, H - FOOT_H, W, FOOT_H);
+    ctx.fillStyle = IC.emerald; ctx.fillRect(0, H - FOOT_H - 5, W, 5);
+    var fy = H - FOOT_H / 2 + 8;
+    ctx.textAlign = 'left'; ctx.fillStyle = IC.polar; ctx.font = '600 25px ' + SERIF;
+    ctx.fillText(d.thanks || ('Gracias por confiar en ' + d.studio + '.'), L, fy);
+    if (d.contact) { ctx.textAlign = 'right'; ctx.fillStyle = IC.emerald; ctx.font = '500 21px ' + MONO; ctx.fillText(d.contact, R, fy); }
+    return y;
+  }
   function drawQuote(ctx, d, H) {
     var W = IMG_W, L = IM, R = W - IM, y;
     function spacing(px) { try { ctx.letterSpacing = px + 'px'; } catch (e) { /* sin soporte */ } }
@@ -1151,11 +1398,12 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
   function renderQuoteImage(d) {
     var tmp = document.createElement('canvas');
     tmp.width = IMG_W; tmp.height = 7000;
-    var yEnd = drawQuote(tmp.getContext('2d'), d, 7000);
+    var draw = d.kind === 'delivery' ? drawDelivery : drawQuote;
+    var yEnd = draw(tmp.getContext('2d'), d, 7000);
     var H = Math.max(IMG_MIN_H, Math.ceil(yEnd + 190));
     var cv = document.createElement('canvas');
     cv.width = IMG_W; cv.height = H;
-    drawQuote(cv.getContext('2d'), d, H);
+    draw(cv.getContext('2d'), d, H);
     return cv;
   }
   function canvasBlob(cv, type, q) {
@@ -1254,7 +1502,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       $('#imgClose').focus();
     });
   }
-  function closeModal() { $('#imgModal').hidden = true; var b = $(modalSrc === quoteSource ? '#genimg' : '#pf-genimg'); if (b) b.focus(); }
+  function closeModal() { $('#imgModal').hidden = true; var b = $(modalSrc === quoteSource ? '#genimg' : (modalSrc === cfSource ? '#cf-genimg' : '#pf-genimg')); if (b) b.focus(); }
   $('#genimg').addEventListener('click', function () { if (last && last.lines.length) openImage($('#genimg'), quoteSource); });
   $('#genpdf').addEventListener('click', function () { if (last && last.lines.length) downloadPdf($('#genpdf'), 'Descargar PDF', quoteSource); });
   $('#imgPng').addEventListener('click', function () {
@@ -1702,14 +1950,157 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
   $('#pf-genpdf').addEventListener('click', function () { if (pfLast && pfLast.lines.length) downloadPdf($('#pf-genpdf'), 'Descargar PDF', pfSource); });
   pfSync();
 
+  /* ---------- Conformidad de entrega ---------- */
+  var CFKEY = 'zas-conformidad-v1';
+  function isoDay(offset) {
+    var t = new Date(); t.setDate(t.getDate() + (offset || 0));
+    return t.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+  }
+  function fmtDay(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
+  }
+  var CF_TERMS = 'El cliente declara haber recibido el trabajo completo detallado en este documento, en sus archivos finales.\nRevisó el diseño y lo acepta a su entera satisfacción, dando por terminado el servicio.\nLos cambios de diseño incluidos se aplicaron durante el proceso, antes de esta entrega.';
+  var CF_SAMPLE = {
+    client: 'Café La Esquina (ejemplo)', project: 'Señalética del local', ruc: '', number: 1,
+    start: isoDay(-12), end: isoDay(0), via: 'Google Drive y WhatsApp',
+    items: [
+      { name: 'Diseño de letrero de fachada', note: 'Archivo final en PDF para imprenta y PNG para redes.' },
+      { name: 'Adaptación del letrero a 3 medidas', note: 'Vinil de puerta, banner y toldo.' },
+      { name: 'Menú de pizarra ilustrado', note: '' }
+    ],
+    paidStart: 180, paidEnd: 180, agreed: 0, terms: CF_TERMS, post: true, thanks: ''
+  };
+  var cf = clone(CF_SAMPLE);
+  try {
+    var cfs = JSON.parse(localStorage.getItem(CFKEY) || 'null');
+    if (cfs && Array.isArray(cfs.items)) Object.keys(cf).forEach(function (k) { if (cfs[k] != null && typeof cfs[k] === typeof cf[k]) cf[k] = cfs[k]; });
+  } catch (e) { /* sin almacenamiento: se usa el ejemplo */ }
+  var cfSaveTimer;
+  function cfSave() {
+    clearTimeout(cfSaveTimer);
+    cfSaveTimer = setTimeout(function () { try { localStorage.setItem(CFKEY, JSON.stringify(cf)); } catch (e) { /* ignorar */ } }, 300);
+  }
+  function cfCalc() {
+    var items = cf.items.filter(function (it) { return String(it.name).trim(); }).map(function (it) { return { name: String(it.name).trim(), note: String(it.note || '').trim() }; });
+    var ps = Math.max(0, pfNum(cf.paidStart)), pe = Math.max(0, pfNum(cf.paidEnd));
+    var paid = Math.round((ps + pe) * 100) / 100, agreed = Math.max(0, pfNum(cf.agreed));
+    var pending = agreed > paid ? Math.round((agreed - paid) * 100) / 100 : 0;
+    return { items: items, paidStart: ps, paidEnd: pe, paid: paid, pending: pending };
+  }
+  function cfData(r) {
+    var terms = [];
+    String(cf.terms || '').split('\n').forEach(function (t) { t = t.trim(); if (t) terms.push(t); });
+    if (cf.post) terms.push(postTerm());
+    var studio = state.studio.trim() || 'ZAS Studio';
+    return {
+      kind: 'delivery', studio: studio, contact: state.contact.trim(), num: pad(cf.number),
+      client: String(cf.client).trim() || 'Cliente', ruc: String(cf.ruc).trim(), project: String(cf.project).trim(),
+      start: fmtDay(cf.start), end: fmtDay(cf.end), via: String(cf.via).trim(),
+      items: r.items, paidStart: r.paidStart, paidEnd: r.paidEnd, paid: r.paid, pending: r.pending,
+      terms: terms, thanks: String(cf.thanks).trim()
+    };
+  }
+  function cfRenderItems() {
+    $('#cf-list').innerHTML = cf.items.map(function (it, i) {
+      return '<div class="pf-row cf-row" data-i="' + i + '">' +
+        '<div class="pf-desc"><input type="text" id="cf-name-' + i + '" data-f="name" placeholder="Pieza entregada" value="' + esc(it.name) + '" aria-label="Pieza entregada ' + (i + 1) + '">' +
+        '<input type="text" class="pf-note" id="cf-note-' + i + '" data-f="note" placeholder="Detalle: formatos, medidas o archivos" value="' + esc(it.note || '') + '" aria-label="Detalle de la pieza ' + (i + 1) + '"></div>' +
+        '<button type="button" class="ghost" data-del="' + i + '" aria-label="Quitar pieza ' + (i + 1) + '">Quitar</button></div>';
+    }).join('');
+    $('#cf-empty').hidden = cf.items.length > 0;
+  }
+  var cfLast = null;
+  function cfUpdate() {
+    var r = cfLast = cfCalc();
+    $('#cf-rc-num').textContent = 'Conformidad N° ' + pad(cf.number);
+    $('#cf-rc-date').textContent = fmtDay(cf.end) || today();
+    $('#cf-rc-client').textContent = String(cf.client).trim() || 'Sin nombre de cliente';
+    var range = [fmtDay(cf.start), fmtDay(cf.end)].filter(Boolean).join(' al ');
+    $('#cf-rc-project').textContent = [String(cf.project).trim(), range ? 'Del ' + range : ''].filter(Boolean).join(' · ');
+    var has = r.items.length > 0;
+    $('#cf-rc-empty').hidden = has;
+    $('#cf-rc-lines').innerHTML = r.items.map(function (it) { return '<li class="rc-line"><span class="d">' + esc(it.name) + '</span><span class="a cf-ok">Entregado</span></li>'; }).join('');
+    $('#cf-rc-total').textContent = fmt(r.paid);
+    $('#cf-rc-start').textContent = fmt(r.paidStart);
+    $('#cf-rc-end').textContent = fmt(r.paidEnd);
+    $('#cf-rc-status-l').textContent = r.pending > 0 ? 'Saldo pendiente' : 'Estado';
+    $('#cf-rc-status').textContent = r.pending > 0 ? fmt(r.pending) : 'Cancelado';
+    $('#d-cf-post').textContent = 'Simple ' + fmt(cfg.mods.postSimple) + ', media ' + fmt(cfg.mods.postMedium) + ', compleja desde ' + fmt(cfg.mods.postComplex) + '. Los montos se cambian en Tarifas.';
+    $('#cf-thanks').placeholder = 'Gracias por confiar en ' + (state.studio.trim() || 'ZAS Studio') + '.';
+    $('#cf-genimg').disabled = !has;
+    $('#cf-genpdf').disabled = !has;
+    cfSave();
+  }
+  function cfSync() {
+    $('#cf-client').value = cf.client; $('#cf-project').value = cf.project; $('#cf-ruc').value = cf.ruc; $('#cf-number').value = cf.number;
+    $('#cf-start').value = cf.start; $('#cf-end').value = cf.end; $('#cf-via').value = cf.via;
+    $('#cf-paid-start').value = cf.paidStart || ''; $('#cf-paid-end').value = cf.paidEnd || ''; $('#cf-agreed').value = cf.agreed || '';
+    $('#cf-terms').value = cf.terms; $('#cf-post').checked = cf.post; $('#cf-thanks').value = cf.thanks;
+    cfRenderItems(); cfUpdate();
+  }
+  [['#cf-client', 'client'], ['#cf-project', 'project'], ['#cf-ruc', 'ruc'], ['#cf-start', 'start'], ['#cf-end', 'end'], ['#cf-via', 'via'], ['#cf-terms', 'terms'], ['#cf-thanks', 'thanks']].forEach(function (f) {
+    $(f[0]).addEventListener('input', function (e) { cf[f[1]] = e.target.value; cfUpdate(); });
+  });
+  $('#cf-number').addEventListener('input', function (e) { cf.number = parseInt(e.target.value, 10) || 1; cfUpdate(); });
+  [['#cf-paid-start', 'paidStart'], ['#cf-paid-end', 'paidEnd'], ['#cf-agreed', 'agreed']].forEach(function (f) {
+    $(f[0]).addEventListener('input', function (e) { cf[f[1]] = Math.max(0, pfNum(e.target.value)); cfUpdate(); });
+  });
+  $('#cf-post').addEventListener('change', function (e) { cf.post = e.target.checked; cfUpdate(); });
+  $('#cf-list').addEventListener('input', function (e) {
+    var f = e.target.dataset.f, row = e.target.closest('.cf-row');
+    if (!f || !row) return;
+    cf.items[parseInt(row.dataset.i, 10)][f] = e.target.value;
+    cfUpdate();
+  });
+  $('#cf-list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]');
+    if (!b) return;
+    cf.items.splice(parseInt(b.dataset.del, 10), 1);
+    cfRenderItems(); cfUpdate();
+  });
+  $('#cf-add').addEventListener('click', function () {
+    cf.items.push({ name: '', note: '' });
+    cfRenderItems(); cfUpdate();
+    var n = $('#cf-name-' + (cf.items.length - 1));
+    if (n) n.focus();
+  });
+  $('#cf-clear').addEventListener('click', function () {
+    cf = { client: '', project: '', ruc: '', number: cf.number, start: '', end: isoDay(0), via: '', items: [{ name: '', note: '' }], paidStart: 0, paidEnd: 0, agreed: 0, terms: CF_TERMS, post: cf.post, thanks: '' };
+    cfSync(); $('#cf-client').focus();
+  });
+  function cfFlash(b, msg, idle) { b.textContent = msg; setTimeout(function () { b.textContent = idle; }, 2000); }
+  /* Copia piezas, cliente y montos: adelanto = lo pedido al inicio, pago final = el saldo */
+  $('#cf-from-pf').addEventListener('click', function () {
+    var r = pfCalc(), b = $('#cf-from-pf');
+    if (!r.lines.length) { cfFlash(b, 'La proforma está vacía', 'Copiar de la proforma'); return; }
+    cf.items = r.lines.map(function (l) { return { name: l.name, note: l.note || '' }; });
+    cf.client = pf.client; cf.project = pf.project; cf.ruc = pf.ruc;
+    cf.paidStart = r.depPct > 0 ? r.deposit : 0; cf.paidEnd = r.depPct > 0 ? r.balance : r.total; cf.agreed = r.total;
+    cfSync(); cfFlash(b, 'Copiado de la proforma', 'Copiar de la proforma');
+  });
+  $('#cf-from-quote').addEventListener('click', function () {
+    var r = calc(), b = $('#cf-from-quote');
+    if (!r.lines.length) { cfFlash(b, 'El cotizador está vacío', 'Copiar del cotizador'); return; }
+    cf.items = r.lines.map(function (l) { return { name: l.label, note: l.note || '' }; });
+    cf.client = state.client; cf.project = state.project; cf.ruc = state.ruc;
+    cf.paidStart = r.deposit; cf.paidEnd = r.balance; cf.agreed = r.total;
+    cfSync(); cfFlash(b, 'Copiado del cotizador', 'Copiar del cotizador');
+  });
+  function cfSource() { return { data: cfData(cfLast), file: docFile('Conformidad', cf.client, cf.number) }; }
+  $('#cf-genimg').addEventListener('click', function () { if (cfLast && cfLast.items.length) openImage($('#cf-genimg'), cfSource); });
+  $('#cf-genpdf').addEventListener('click', function () { if (cfLast && cfLast.items.length) downloadPdf($('#cf-genpdf'), 'Descargar PDF', cfSource); });
+  cfSync();
+
   /* Pestañas */
   function showTab(which) {
-    ['quote', 'pf', 'rates'].forEach(function (k) {
+    ['quote', 'pf', 'cf', 'rates'].forEach(function (k) {
       $('#view-' + k).hidden = k !== which;
       $('#tab-' + k).setAttribute('aria-selected', String(k === which));
     });
     $('#dock').hidden = which !== 'quote';
     if (which === 'pf') pfUpdate();
+    if (which === 'cf') cfUpdate();
     var v = $('#view-' + which);
     v.classList.remove('panel-view-in'); void v.offsetWidth; v.classList.add('panel-view-in');
     window.scrollTo(0, 0);
@@ -1717,6 +2108,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
   $('#tab-quote').addEventListener('click', function () { showTab('quote'); });
   $('#tab-rates').addEventListener('click', function () { showTab('rates'); });
   $('#tab-pf').addEventListener('click', function () { showTab('pf'); });
+  $('#tab-cf').addEventListener('click', function () { showTab('cf'); });
 
   /* Inicio */
   buildCatalog(); buildFilter(); applyFilter();
