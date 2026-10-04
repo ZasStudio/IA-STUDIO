@@ -258,6 +258,25 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
 .rc-actions .btn { flex: 1 1 auto; padding-block: 12px; }
 .rc-actions .btn.cta { flex: 2 1 auto; }
 .rc-actions #copy { flex-basis: 100%; }
+.sample-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Proforma libre: una fila por trabajo */
+.pf-head, .pf-row { display: grid; grid-template-columns: minmax(0, 1fr) 74px 128px 92px auto; gap: 8px; align-items: start; }
+.pf-head { font-size: 12px; font-weight: 600; color: var(--ink-2); padding-inline: 2px; }
+.pf-head span:nth-child(n+2) { text-align: right; }
+.pf-list { display: flex; flex-direction: column; gap: 12px; }
+.pf-row { padding-bottom: 12px; border-bottom: 1px solid var(--line-soft); }
+.pf-desc { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pf-desc .pf-note { font-size: 14px; padding-block: 7px; }
+.pf-qty { text-align: right; }
+.pf-amt { align-self: center; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.pf-row .ghost { align-self: center; }
+@media (max-width: 640px) {
+  .pf-head { display: none; }
+  .pf-row { grid-template-columns: 70px minmax(0, 1fr) auto; }
+  .pf-desc { grid-column: 1 / -1; }
+  .pf-amt { grid-column: 1 / 3; text-align: left; }
+  .pf-row .ghost { grid-column: 3; grid-row: 3; }
+}
 .fallback { width: 100%; min-height: 150px; font: 13px/1.45 var(--font-mono); padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--field); }
 
 /* Barra inferior móvil */
@@ -332,6 +351,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     </div>
     <nav class="tabs" role="tablist" aria-label="Secciones">
       <button class="tab" role="tab" id="tab-quote" aria-selected="true" aria-controls="view-quote" type="button">Cotizar</button>
+      <button class="tab" role="tab" id="tab-pf" aria-selected="false" aria-controls="view-pf" type="button">Proforma</button>
       <button class="tab" role="tab" id="tab-rates" aria-selected="false" aria-controls="view-rates" type="button">Tarifas</button>
     </nav>
   </div>
@@ -472,6 +492,97 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
             <button class="btn" type="button" id="copy">Copiar texto</button>
           </div>
           <textarea class="fallback" id="fallback" hidden readonly aria-label="Texto de la cotización para copiar"></textarea>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="view-pf" role="tabpanel" aria-labelledby="tab-pf" hidden>
+    <div class="cols">
+      <div class="build">
+        <div class="sample" id="pf-sample">
+          <p><strong>Proforma libre:</strong> escribe cualquier trabajo con tu propio precio, aunque no esté en el cotizador. Sale con el mismo diseño en imagen y PDF.</p>
+          <div class="sample-actions"><button class="btn" type="button" id="pf-import">Traer ítems del cotizador</button><button class="btn" type="button" id="pf-clear">Empezar de cero</button></div>
+        </div>
+
+        <section class="panel" aria-labelledby="h-pf-datos">
+          <header class="panel-head">
+            <span class="step-n" aria-hidden="true">1</span>
+            <div><h2 id="h-pf-datos">Documento y cliente</h2><p class="sub">Elige cómo se llama el documento y para quién es.</p></div>
+          </header>
+          <div class="panel-body">
+            <fieldset>
+              <legend>Tipo de documento</legend>
+              <div class="seg" id="seg-pf-title">
+                <input type="radio" name="pftitle" id="pft-proforma" value="Proforma"><label for="pft-proforma">Proforma</label>
+                <input type="radio" name="pftitle" id="pft-cotizacion" value="Cotización"><label for="pft-cotizacion">Cotización</label>
+                <input type="radio" name="pftitle" id="pft-presupuesto" value="Presupuesto"><label for="pft-presupuesto">Presupuesto</label>
+              </div>
+            </fieldset>
+            <div class="fields">
+              <label class="field"><span>Cliente</span><input type="text" id="pf-client" autocomplete="off" placeholder="Nombre o negocio"></label>
+              <label class="field"><span>Proyecto</span><input type="text" id="pf-project" autocomplete="off" placeholder="Ej. Señalética del local"></label>
+              <label class="field"><span>RUC o DNI del cliente (opcional)</span><input type="text" id="pf-ruc" autocomplete="off" spellcheck="false"></label>
+              <label class="field narrow"><span>N° de documento</span><input type="number" id="pf-number" inputmode="numeric" min="1"></label>
+              <label class="field narrow"><span>Válida por (días)</span><input type="number" id="pf-valid" inputmode="numeric" min="1" max="90"></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-pf-items">
+          <header class="panel-head">
+            <span class="step-n" aria-hidden="true">2</span>
+            <div><h2 id="h-pf-items">Trabajos</h2><p class="sub">Cada línea con su descripción, un detalle opcional, la cantidad y el precio unitario.</p></div>
+          </header>
+          <div class="panel-body">
+            <div class="pf-head" aria-hidden="true"><span>Descripción</span><span>Cant.</span><span>P. unit.</span><span>Importe</span><span></span></div>
+            <div class="pf-list" id="pf-list"></div>
+            <p class="empty-hint" id="pf-empty" hidden>Aún no hay trabajos. Agrega el primero.</p>
+            <div><button class="btn" type="button" id="pf-add">Agregar trabajo</button></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="h-pf-cond">
+          <header class="panel-head">
+            <span class="step-n" aria-hidden="true">3</span>
+            <div><h2 id="h-pf-cond">Totales y condiciones</h2><p class="sub">Descuento, adelanto, IGV y las condiciones que van en el documento.</p></div>
+          </header>
+          <div class="panel-body">
+            <div class="inline-fields">
+              <label class="field"><span>Descuento</span><span class="num" style="width:110px"><input type="number" id="pf-discount" inputmode="decimal" min="0" max="100" step="1" aria-label="Descuento en porcentaje"><span class="affix">%</span></span></label>
+              <label class="field"><span>Adelanto</span><span class="num" style="width:110px"><input type="number" id="pf-deposit" inputmode="decimal" min="0" max="100" step="5" aria-label="Adelanto en porcentaje"><span class="affix">%</span></span></label>
+            </div>
+            <div class="opts">
+              <label class="opt" for="pf-igv"><input type="checkbox" id="pf-igv"><span><span class="t" id="lb-pf-igv">Agregar IGV</span><span class="d">Actívalo si vas a emitir factura.</span></span></label>
+            </div>
+            <label class="field"><span>Condiciones (una por línea)</span><textarea id="pf-terms" rows="4"></textarea></label>
+            <p class="note" style="margin:0">El adelanto, la fecha de validez y si los montos incluyen IGV se agregan solos.</p>
+          </div>
+        </section>
+      </div>
+
+      <aside class="receipt-wrap" aria-label="Resumen de la proforma">
+        <div class="receipt">
+          <div class="rc-top">
+            <div class="rc-head"><span id="pf-rc-num"></span><span id="pf-rc-date"></span></div>
+            <div class="rc-client" id="pf-rc-client"></div><div class="rc-project" id="pf-rc-project"></div>
+          </div>
+          <div class="rc-main">
+            <div id="pf-rc-empty" class="rc-empty" hidden>Agrega trabajos con precio y aparecen aquí.</div>
+            <ul class="rc-lines" id="pf-rc-lines"></ul>
+            <ul class="rc-sums" id="pf-rc-sums"></ul>
+            <div class="total-block" aria-live="polite">
+              <div class="total-top"><span class="total-label">Total</span><span class="total-amount" id="pf-rc-total">S/ 0</span></div>
+              <div class="total-split" id="pf-rc-split">
+                <div><span id="pf-rc-dep-l">Adelanto</span><span id="pf-rc-dep">S/ 0</span></div>
+                <div><span>Saldo contra entrega</span><span id="pf-rc-bal">S/ 0</span></div>
+              </div>
+            </div>
+            <div class="rc-actions">
+              <button class="btn cta" type="button" id="pf-genimg">Generar imagen</button>
+              <button class="btn primary" type="button" id="pf-genpdf">Descargar PDF</button>
+            </div>
           </div>
         </div>
       </aside>
@@ -876,7 +987,7 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     }
     ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(230,251,246,0.78)'; ctx.font = '400 21px ' + BODY;
     ctx.fillText('Diseño gráfico y contenido creativo', L, 186);
-    ctx.textAlign = 'right'; ctx.fillStyle = IC.polar; ctx.font = '600 62px ' + SERIF; spacing(-2); ctx.fillText('Cotización', R, 130); spacing(0);
+    ctx.textAlign = 'right'; ctx.fillStyle = IC.polar; ctx.font = '600 62px ' + SERIF; spacing(-2); ctx.fillText(d.title || 'Cotización', R, 130); spacing(0);
     ctx.fillStyle = IC.emerald; ctx.font = '600 25px ' + MONO; spacing(1.5); ctx.fillText('N° ' + d.num, R, 178); spacing(0);
     ctx.fillStyle = IC.emerald; ctx.fillRect(0, HEAD_H, W, 5);
 
@@ -946,8 +1057,10 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     ctx.fillStyle = IC.emerald; ctx.textAlign = 'left'; ctx.font = '600 19px ' + BODY; spacing(3.4); ctx.fillText('TOTAL', tx + 28, yR2 + 66); spacing(0);
     ctx.fillStyle = IC.polar; ctx.textAlign = 'right'; ctx.font = '700 44px ' + SERIF; spacing(-1); ctx.fillText(fmt2(d.total), R - 28, yR2 + 70); spacing(0);
     yR2 += 112 + 24;
-    trow('Adelanto ' + d.depPct + '%', fmt2(d.deposit));
-    trow('Saldo contra entrega', fmt2(d.balance));
+    if (d.depPct > 0 && d.depPct < 100) {
+      trow('Adelanto ' + numEs(d.depPct) + '%', fmt2(d.deposit));
+      trow('Saldo contra entrega', fmt2(d.balance));
+    }
 
     label('CONDICIONES', L, yL2 + 26);
     yL2 += 66;
@@ -1049,13 +1162,15 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     put(x + 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
     return new Blob(parts, { type: 'application/pdf' });
   }
-  function pdfName() {
-    var c = (state.client.trim() || 'cliente').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 40);
-    return 'cotizacion-' + pad(state.number) + '-' + (c || 'cliente') + '.pdf';
+  function docFile(kind, client, number) {
+    var k = String(kind).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    var c = (String(client).trim() || 'cliente').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 40);
+    return k + '-' + pad(number) + '-' + (c || 'cliente');
   }
-  function makePdf() {
+  function quoteSource() { return { data: quoteData(last), file: docFile('Cotización', state.client, state.number) }; }
+  function makePdf(d) {
     return fontsReady().then(function () {
-      var cv = renderQuoteImage(quoteData(last));
+      var cv = renderQuoteImage(d);
       return canvasBlob(cv, 'image/jpeg', 0.95).then(function (b) { return b.arrayBuffer(); }).then(function (buf) {
         return buildPdf(new Uint8Array(buf), cv.width, cv.height);
       });
@@ -1074,19 +1189,31 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
     });
   }
-  function downloadPdf(btn, idle) {
-    if (!last || !last.lines.length) return;
-    var failed = false;
+  function downloadPdf(btn, idle, srcFn) {
+    var src = srcFn(), failed = false, declined = false;
     btn.disabled = true; btn.textContent = 'Preparando PDF…';
-    var declined = false;
-    makePdf().then(function (pdf) { return saveFile(pdf, pdfName()); })
+    makePdf(src.data).then(function (pdf) { return saveFile(pdf, src.file + '.pdf'); })
     .catch(function (e) { if (e && e.code === 'declined') declined = true; else failed = true; }).then(function () {
-      btn.disabled = !(last && last.lines.length);
+      btn.disabled = false;
       btn.textContent = failed ? 'No se pudo, reintenta' : (declined ? 'Descarga cancelada' : 'PDF listo');
       setTimeout(function () { btn.textContent = idle; }, 2200);
     });
   }
-  var lastBlob = null;
+  var lastBlob = null, modalSrc = null;
+  function openImage(btn, srcFn) {
+    var failed = false, idle = btn.textContent;
+    modalSrc = srcFn;
+    btn.disabled = true; btn.textContent = 'Generando…';
+    fontsReady()
+      .then(function () { return canvasBlob(renderQuoteImage(srcFn().data), 'image/png'); })
+      .then(showImage)
+      .catch(function () { failed = true; })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = failed ? 'No se pudo generar, reintenta' : idle;
+        if (failed) setTimeout(function () { btn.textContent = idle; }, 2500);
+      });
+  }
   /* Se usa una URL de datos (no blob:) porque algunos entornos y vistas previas bloquean las imágenes blob: */
   function showImage(blob) {
     lastBlob = blob;
@@ -1106,29 +1233,16 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
       $('#imgClose').focus();
     });
   }
-  function closeModal() { $('#imgModal').hidden = true; $('#genimg').focus(); }
-  $('#genimg').addEventListener('click', function () {
-    if (!last || !last.lines.length) return;
-    var b = $('#genimg'), failed = false;
-    b.disabled = true; b.textContent = 'Generando…';
-    fontsReady()
-      .then(function () { return canvasBlob(renderQuoteImage(quoteData(last)), 'image/png'); })
-      .then(showImage)
-      .catch(function () { failed = true; })
-      .then(function () {
-        b.disabled = !(last && last.lines.length);
-        b.textContent = failed ? 'No se pudo generar, reintenta' : 'Generar imagen';
-        if (failed) setTimeout(function () { b.textContent = 'Generar imagen'; }, 2500);
-      });
-  });
-  $('#genpdf').addEventListener('click', function () { downloadPdf($('#genpdf'), 'Descargar PDF'); });
+  function closeModal() { $('#imgModal').hidden = true; var b = $(modalSrc === quoteSource ? '#genimg' : '#pf-genimg'); if (b) b.focus(); }
+  $('#genimg').addEventListener('click', function () { if (last && last.lines.length) openImage($('#genimg'), quoteSource); });
+  $('#genpdf').addEventListener('click', function () { if (last && last.lines.length) downloadPdf($('#genpdf'), 'Descargar PDF', quoteSource); });
   $('#imgPng').addEventListener('click', function () {
     if (!lastBlob) return;
     var b = $('#imgPng');
-    saveFile(lastBlob, pdfName().replace(/\.pdf$/, '.png')).then(function () { b.textContent = 'Imagen lista'; }, function (e) { b.textContent = e && e.code === 'declined' ? 'Descarga cancelada' : 'No se pudo, reintenta'; })
+    saveFile(lastBlob, modalSrc().file + '.png').then(function () { b.textContent = 'Imagen lista'; }, function (e) { b.textContent = e && e.code === 'declined' ? 'Descarga cancelada' : 'No se pudo, reintenta'; })
       .then(function () { setTimeout(function () { b.textContent = 'Descargar imagen'; }, 2200); });
   });
-  $('#imgPdf').addEventListener('click', function () { downloadPdf($('#imgPdf'), 'Descargar PDF'); });
+  $('#imgPdf').addEventListener('click', function () { if (modalSrc) downloadPdf($('#imgPdf'), 'Descargar PDF', modalSrc); });
   $('#imgClose').addEventListener('click', closeModal);
   $('#imgModal').addEventListener('click', function (e) { if (e.target === $('#imgModal')) closeModal(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#imgModal').hidden) closeModal(); });
@@ -1401,20 +1515,178 @@ legend { padding: 0; margin-bottom: 8px; font-size: 13px; font-weight: 600; colo
     $('#reset-note').textContent = '';
   }
 
+  /* ---------- Proforma libre ---------- */
+  var PFKEY = 'zas-proforma-v1';
+  var PF_TERMS = 'Incluye 2 cambios de diseño. Cada cambio adicional se cotiza aparte.\nAlcance: solo diseño. La impresión y producción la cotiza la imprenta.';
+  var PF_SAMPLE = {
+    title: 'Proforma', client: 'Café La Esquina (ejemplo)', project: 'Señalética del local', ruc: '', number: 1, valid: 7,
+    items: [
+      { name: 'Diseño de letrero de fachada', note: 'Dos propuestas y versión final para imprenta.', qty: 1, price: 180 },
+      { name: 'Adaptación del letrero a otras medidas', note: 'Vinil de puerta, banner y toldo.', qty: 3, price: 20 },
+      { name: 'Menú de pizarra ilustrado', note: '', qty: 1, price: 120 }
+    ],
+    discount: 0, deposit: 50, igv: false, terms: PF_TERMS
+  };
+  var pf = clone(PF_SAMPLE);
+  try {
+    var pfs = JSON.parse(localStorage.getItem(PFKEY) || 'null');
+    if (pfs && Array.isArray(pfs.items)) {
+      Object.keys(pf).forEach(function (k) { if (pfs[k] != null && typeof pfs[k] === typeof pf[k]) pf[k] = pfs[k]; });
+    }
+  } catch (e) { /* sin almacenamiento: se usa el ejemplo */ }
+  var pfSaveTimer;
+  function pfSave() {
+    clearTimeout(pfSaveTimer);
+    pfSaveTimer = setTimeout(function () { try { localStorage.setItem(PFKEY, JSON.stringify(pf)); } catch (e) { /* ignorar */ } }, 300);
+  }
+  function pfNum(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function pfCalc() {
+    var lines = [];
+    pf.items.forEach(function (it) {
+      var q = Math.max(0, pfNum(it.qty)), p = Math.max(0, pfNum(it.price));
+      if (q > 0 && p > 0 && String(it.name).trim()) lines.push({ name: String(it.name).trim(), note: String(it.note || '').trim(), qty: q, unit: p, amount: Math.round(q * p * 100) / 100, label: String(it.name).trim() + (q !== 1 ? ' × ' + numEs(q) : '') });
+    });
+    var subtotal = lines.reduce(function (s, l) { return s + l.amount; }, 0);
+    var discPct = Math.min(100, Math.max(0, pfNum(pf.discount)));
+    var disc = Math.round(subtotal * discPct) / 100;
+    var net = subtotal - disc;
+    var igv = pf.igv ? Math.round(net * cfg.mods.igv) / 100 : 0;
+    var total = Math.round((net + igv) * 100) / 100;
+    var depPct = Math.min(100, Math.max(0, pfNum(pf.deposit)));
+    var deposit = Math.round(total * depPct) / 100;
+    return { lines: lines, subtotal: subtotal, discPct: discPct, disc: disc, igv: igv, total: total, depPct: depPct, deposit: deposit, balance: Math.round((total - deposit) * 100) / 100 };
+  }
+  function pfValid() { return Math.max(1, Math.min(90, parseInt(pf.valid, 10) || 7)); }
+  function pfData(r) {
+    var terms = [], valid = pfValid();
+    if (r.depPct > 0) terms.push(r.depPct >= 100 ? 'Pago del 100% (' + fmt2(r.total) + ') para iniciar el trabajo.' : 'Adelanto del ' + numEs(r.depPct) + '% (' + fmt2(r.deposit) + ') para iniciar el trabajo. El saldo se cancela contra entrega.');
+    terms.push(pf.title + ' válida por ' + valid + ' días, hasta el ' + dateIn(valid) + '.');
+    String(pf.terms || '').split('\n').forEach(function (t) { t = t.trim(); if (t) terms.push(t); });
+    terms.push('Montos en soles (S/). ' + (pf.igv ? 'Incluyen IGV.' : 'No incluyen IGV.'));
+    return {
+      title: pf.title, studio: state.studio.trim() || 'ZAS Studio', contact: state.contact.trim(), pay: state.pay.trim(),
+      num: pad(pf.number), date: today(), until: dateIn(valid),
+      client: String(pf.client).trim() || 'Cliente', ruc: String(pf.ruc).trim(), project: String(pf.project).trim(),
+      rows: r.lines, adj: [], subtotal: r.subtotal, disc: r.disc, discPct: r.discPct,
+      igv: r.igv, igvPct: cfg.mods.igv, total: r.total, deposit: r.deposit, depPct: r.depPct, balance: r.balance, terms: terms
+    };
+  }
+  function pfRenderItems() {
+    $('#pf-list').innerHTML = pf.items.map(function (it, i) {
+      return '<div class="pf-row" data-i="' + i + '">' +
+        '<div class="pf-desc"><input type="text" id="pf-name-' + i + '" data-f="name" placeholder="Descripción del trabajo" value="' + esc(it.name) + '" aria-label="Descripción del trabajo ' + (i + 1) + '">' +
+        '<input type="text" class="pf-note" id="pf-note-' + i + '" data-f="note" placeholder="Detalle opcional" value="' + esc(it.note || '') + '" aria-label="Detalle del trabajo ' + (i + 1) + '"></div>' +
+        '<input type="number" class="pf-qty" id="pf-qty-' + i + '" data-f="qty" inputmode="decimal" min="0" step="1" value="' + esc(it.qty) + '" aria-label="Cantidad del trabajo ' + (i + 1) + '">' +
+        '<div class="num pf-price"><span class="affix">S/</span><input type="number" id="pf-price-' + i + '" data-f="price" inputmode="decimal" min="0" step="5" value="' + (it.price ? esc(it.price) : '') + '" placeholder="0" aria-label="Precio unitario del trabajo ' + (i + 1) + '"></div>' +
+        '<span class="pf-amt" data-amt></span>' +
+        '<button type="button" class="ghost" data-del="' + i + '" aria-label="Quitar trabajo ' + (i + 1) + '">Quitar</button></div>';
+    }).join('');
+    $('#pf-empty').hidden = pf.items.length > 0;
+  }
+  var pfLast = null;
+  function pfUpdate() {
+    var r = pfLast = pfCalc();
+    $$('#pf-list .pf-row').forEach(function (row) {
+      var it = pf.items[parseInt(row.dataset.i, 10)];
+      var a = Math.max(0, pfNum(it.qty)) * Math.max(0, pfNum(it.price));
+      $('[data-amt]', row).textContent = a > 0 ? fmt(a) : '—';
+    });
+    $('#pf-rc-num').textContent = pf.title + ' N° ' + pad(pf.number);
+    $('#pf-rc-date').textContent = today();
+    $('#pf-rc-client').textContent = String(pf.client).trim() || 'Sin nombre de cliente';
+    $('#pf-rc-project').textContent = String(pf.project).trim();
+    var has = r.lines.length > 0;
+    $('#pf-rc-empty').hidden = has;
+    $('#pf-rc-lines').innerHTML = r.lines.map(function (l) { return '<li class="rc-line"><span class="d">' + esc(l.label) + '</span><span class="a">' + fmt(l.amount) + '</span></li>'; }).join('');
+    var sums = '';
+    if (r.disc || r.igv) sums += '<li class="rc-line strong"><span class="d">Subtotal</span><span class="a">' + fmt(r.subtotal) + '</span></li>';
+    if (r.disc) sums += '<li class="rc-line"><span class="d">Descuento ' + numEs(r.discPct) + '%</span><span class="a">−' + fmt(r.disc) + '</span></li>';
+    if (r.igv) sums += '<li class="rc-line"><span class="d">IGV ' + cfg.mods.igv + '%</span><span class="a">+' + fmt(r.igv) + '</span></li>';
+    $('#pf-rc-sums').innerHTML = sums;
+    $('#pf-rc-sums').hidden = !sums;
+    $('#pf-rc-total').textContent = fmt(r.total);
+    $('#pf-rc-split').hidden = !(r.depPct > 0);
+    $('#pf-rc-dep-l').textContent = 'Adelanto ' + numEs(r.depPct) + '% para iniciar';
+    $('#pf-rc-dep').textContent = fmt(r.deposit);
+    $('#pf-rc-bal').textContent = fmt(r.balance);
+    $('#lb-pf-igv').textContent = 'Agregar IGV (' + cfg.mods.igv + '%)';
+    $('#pf-genimg').disabled = !has;
+    $('#pf-genpdf').disabled = !has;
+    pfSave();
+  }
+  function pfSync() {
+    $('#pft-' + { 'Proforma': 'proforma', 'Cotización': 'cotizacion', 'Presupuesto': 'presupuesto' }[pf.title]).checked = true;
+    $('#pf-client').value = pf.client; $('#pf-project').value = pf.project; $('#pf-ruc').value = pf.ruc;
+    $('#pf-number').value = pf.number; $('#pf-valid').value = pf.valid;
+    $('#pf-discount').value = pf.discount; $('#pf-deposit').value = pf.deposit; $('#pf-igv').checked = pf.igv;
+    $('#pf-terms').value = pf.terms;
+    pfRenderItems(); pfUpdate();
+  }
+  if (['Proforma', 'Cotización', 'Presupuesto'].indexOf(pf.title) < 0) pf.title = 'Proforma';
+  $$('input[name="pftitle"]').forEach(function (r) { r.addEventListener('change', function () { pf.title = r.value; pfUpdate(); }); });
+  [['#pf-client', 'client'], ['#pf-project', 'project'], ['#pf-ruc', 'ruc'], ['#pf-terms', 'terms']].forEach(function (f) {
+    $(f[0]).addEventListener('input', function (e) { pf[f[1]] = e.target.value; pfUpdate(); });
+  });
+  $('#pf-number').addEventListener('input', function (e) { pf.number = parseInt(e.target.value, 10) || 1; pfUpdate(); });
+  $('#pf-valid').addEventListener('input', function (e) { pf.valid = parseInt(e.target.value, 10) || 7; pfUpdate(); });
+  $('#pf-discount').addEventListener('input', function (e) { pf.discount = Math.max(0, Math.min(100, pfNum(e.target.value))); pfUpdate(); });
+  $('#pf-deposit').addEventListener('input', function (e) { pf.deposit = Math.max(0, Math.min(100, pfNum(e.target.value))); pfUpdate(); });
+  $('#pf-igv').addEventListener('change', function (e) { pf.igv = e.target.checked; pfUpdate(); });
+  $('#pf-list').addEventListener('input', function (e) {
+    var f = e.target.dataset.f, row = e.target.closest('.pf-row');
+    if (!f || !row) return;
+    pf.items[parseInt(row.dataset.i, 10)][f] = e.target.value;
+    pfUpdate();
+  });
+  $('#pf-list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]');
+    if (!b) return;
+    pf.items.splice(parseInt(b.dataset.del, 10), 1);
+    pfRenderItems(); pfUpdate();
+  });
+  $('#pf-add').addEventListener('click', function () {
+    pf.items.push({ name: '', note: '', qty: 1, price: 0 });
+    pfRenderItems(); pfUpdate();
+    var n = $('#pf-name-' + (pf.items.length - 1));
+    if (n) n.focus();
+  });
+  $('#pf-clear').addEventListener('click', function () {
+    pf = { title: 'Proforma', client: '', project: '', ruc: '', number: pf.number, valid: 7, items: [{ name: '', note: '', qty: 1, price: 0 }], discount: 0, deposit: 50, igv: false, terms: PF_TERMS };
+    pfSync(); $('#pf-client').focus();
+  });
+  /* Copia las líneas del cotizador (con sus ajustes) como trabajos editables */
+  $('#pf-import').addEventListener('click', function () {
+    var r = calc(), b = $('#pf-import');
+    if (!r.lines.length) { b.textContent = 'El cotizador está vacío'; setTimeout(function () { b.textContent = 'Traer ítems del cotizador'; }, 2000); return; }
+    pf.items = r.lines.map(function (l) { return { name: l.name, note: l.note || '', qty: l.qty, price: l.unit }; })
+      .concat(r.adj.map(function (a) { return { name: a.label, note: '', qty: 1, price: a.amount }; }).filter(function (i) { return i.price > 0; }));
+    if (state.client.trim()) pf.client = state.client;
+    if (state.project.trim()) pf.project = state.project;
+    if (state.ruc.trim()) pf.ruc = state.ruc;
+    pf.igv = state.igv; pf.discount = state.discount;
+    pfSync();
+    b.textContent = 'Ítems copiados'; setTimeout(function () { b.textContent = 'Traer ítems del cotizador'; }, 2000);
+  });
+  function pfSource() { return { data: pfData(pfLast), file: docFile(pf.title, pf.client, pf.number) }; }
+  $('#pf-genimg').addEventListener('click', function () { if (pfLast && pfLast.lines.length) openImage($('#pf-genimg'), pfSource); });
+  $('#pf-genpdf').addEventListener('click', function () { if (pfLast && pfLast.lines.length) downloadPdf($('#pf-genpdf'), 'Descargar PDF', pfSource); });
+  pfSync();
+
   /* Pestañas */
   function showTab(which) {
-    var quote = which === 'quote';
-    $('#view-quote').hidden = !quote;
-    $('#view-rates').hidden = quote;
-    $('#dock').hidden = !quote;
-    $('#tab-quote').setAttribute('aria-selected', String(quote));
-    $('#tab-rates').setAttribute('aria-selected', String(!quote));
-    var v = $(quote ? '#view-quote' : '#view-rates');
+    ['quote', 'pf', 'rates'].forEach(function (k) {
+      $('#view-' + k).hidden = k !== which;
+      $('#tab-' + k).setAttribute('aria-selected', String(k === which));
+    });
+    $('#dock').hidden = which !== 'quote';
+    if (which === 'pf') pfUpdate();
+    var v = $('#view-' + which);
     v.classList.remove('panel-view-in'); void v.offsetWidth; v.classList.add('panel-view-in');
     window.scrollTo(0, 0);
   }
   $('#tab-quote').addEventListener('click', function () { showTab('quote'); });
   $('#tab-rates').addEventListener('click', function () { showTab('rates'); });
+  $('#tab-pf').addEventListener('click', function () { showTab('pf'); });
 
   /* Inicio */
   buildCatalog(); buildFilter(); applyFilter();
