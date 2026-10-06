@@ -21,3 +21,12 @@ Sin dependencias: solo Node 18+.
 
 La clave nunca se expone a terceros: el navegador la envía a tu propio servidor, que llama a Google.
 No publiques este servidor en internet con tu clave en `.env` sin añadir autenticación.
+
+## Motion (Remotion)
+
+En [`motion/`](motion/README.md) hay un proyecto de [Remotion](https://www.remotion.dev) con motion graphics
+estilo "Spark": tipografía cinética, desenfoques, rebotes, cristal, degradados y mapa de degradado.
+
+```bash
+cd motion && npm install && npm run studio
+```
