@@ -2,6 +2,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { proposeEdits, claudeError, MODELS as CLAUDE_MODELS } from "./claude-video.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(__dirname, "public");
@@ -16,7 +17,7 @@ try {
 } catch {}
 
 const PORT = process.env.PORT || 3000;
-const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" };
+const MIME = { ".json": "application/json", ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" };
 
 const json = (res, status, body) => {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -38,6 +39,7 @@ const readBody = (req) =>
 
 // La clave viene del navegador (cabecera) o de la variable de entorno del servidor
 const getKey = (req) => req.headers["x-api-key"] || process.env.GEMINI_API_KEY || "";
+const getAnthropicKey = (req) => req.headers["x-anthropic-key"] || process.env.ANTHROPIC_API_KEY || "";
 
 async function google(pathname, key, body) {
   const r = await fetch(`${API}/${pathname}`, {
@@ -103,7 +105,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   try {
     if (req.method === "GET" && url.pathname === "/api/config") {
-      return json(res, 200, { serverKey: !!process.env.GEMINI_API_KEY });
+      return json(res, 200, { serverKey: !!process.env.GEMINI_API_KEY, serverAnthropicKey: !!process.env.ANTHROPIC_API_KEY, claudeModels: CLAUDE_MODELS });
     }
 
     if (req.method === "GET" && url.pathname === "/api/models") {
@@ -123,6 +125,12 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, result);
     }
 
+    if (req.method === "POST" && url.pathname === "/api/video/edit") {
+      const key = getAnthropicKey(req);
+      if (!key) return json(res, 401, { error: "Falta la API key de Anthropic. Pégala en Ajustes." });
+      return json(res, 200, await proposeEdits(JSON.parse(await readBody(req)), key));
+    }
+
     // Archivos estáticos
     if (req.method === "GET") {
       const file = path.normalize(path.join(PUBLIC, url.pathname === "/" ? "index.html" : url.pathname));
@@ -133,6 +141,8 @@ const server = http.createServer(async (req, res) => {
     }
     json(res, 404, { error: "No encontrado" });
   } catch (e) {
+    const ce = claudeError(e);
+    if (ce) return json(res, ce.status, { error: ce.error });
     json(res, e.status || 500, { error: e.message });
   }
 });

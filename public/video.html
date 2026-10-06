@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IA Studio · Editor de video</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800&family=Montserrat:wght@400;600;800&family=Permanent+Marker&family=Playfair+Display:wght@400;600;800&family=Roboto+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/video.css">
+</head>
+<body>
+<header>
+  <div class="logo">✦ <span>IA Studio</span></div>
+  <nav>
+    <a href="/">Imágenes</a>
+    <a href="/video.html" class="on">Video</a>
+  </nav>
+  <div class="grow"></div>
+  <button id="btnNew" class="ghost">Nuevo proyecto</button>
+  <button id="btnSettings">⚙ Ajustes</button>
+  <button id="btnExport" class="primary">⬇ Exportar</button>
+</header>
+
+<main>
+  <!-- Medios + chat con Claude -->
+  <section class="col">
+    <div class="sec-h">Medios <button class="icon" id="btnImport" title="Importar video">＋</button></div>
+    <input type="file" id="fileInput" accept="video/*" multiple hidden>
+    <div class="assets" id="assets"></div>
+    <div class="drop" id="drop">Arrastra videos aquí o haz clic para importar</div>
+
+    <div class="chat">
+      <div class="sec-h">Editar con Claude</div>
+      <div class="msgs" id="msgs"></div>
+      <div class="chips" id="chips"></div>
+      <div class="composer">
+        <details class="notes">
+          <summary>Notas / transcripción (opcional)</summary>
+          <textarea id="notes" placeholder="Pega aquí la transcripción o datos (marca, colores, guion…). Claude no oye el audio."></textarea>
+        </details>
+        <textarea id="instruction" placeholder="Ej: Añade un título animado al inicio y subtítulos estilo TikTok"></textarea>
+        <div class="row">
+          <span class="hint grow" style="flex:1">Ctrl/⌘ + Enter para enviar</span>
+          <button class="primary" id="btnSend">Enviar a Claude</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Vista previa -->
+  <section class="center">
+    <div class="stage" id="stage">
+      <canvas id="canvas" width="1920" height="1080"></canvas>
+      <div class="badge" id="previewBadge">✦ Vista previa con propuestas de Claude</div>
+      <div class="empty" id="stageEmpty">Importa un video para empezar.<br>Luego pídele a Claude lo que quieras editar.</div>
+    </div>
+    <div class="transport">
+      <button class="icon" id="btnStart" title="Inicio">⏮</button>
+      <button class="icon" id="btnPlay" title="Reproducir (espacio)">▶</button>
+      <span class="time" id="time">0:00.0 / 0:00.0</span>
+      <div class="grow"></div>
+      <label class="hint" for="aspect">Formato</label>
+      <select id="aspect">
+        <option value="16:9">16:9 · YouTube</option>
+        <option value="9:16">9:16 · Reels/TikTok</option>
+        <option value="1:1">1:1 · Cuadrado</option>
+        <option value="4:5">4:5 · Feed</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Panel de revisión -->
+  <section class="col">
+    <div class="tabs">
+      <button data-tab="review" class="on">Propuestas<span class="count" id="pendingCount"></span></button>
+      <button data-tab="elements">Elementos</button>
+      <button data-tab="history">Historial</button>
+    </div>
+    <div class="pane on" id="pane-review"></div>
+    <div class="pane" id="pane-elements"></div>
+    <div class="pane" id="pane-history"></div>
+  </section>
+</main>
+
+<section class="timeline">
+  <div class="tl-tools">
+    <button id="btnAddText">＋ Texto</button>
+    <button id="btnAddFx">＋ Efecto</button>
+    <button id="btnSplit" title="Cortar el clip en el cursor (S)">✂ Cortar</button>
+    <button id="btnDelete" class="danger" title="Eliminar selección (Supr)">🗑</button>
+    <button id="btnUndo" title="Deshacer (Ctrl+Z)">↶</button>
+    <button id="btnRedo" title="Rehacer (Ctrl+Shift+Z)">↷</button>
+    <div class="grow"></div>
+    <label class="toggle"><input type="checkbox" id="showProposals" checked> Ver propuestas</label>
+    <span class="hint">Zoom</span>
+    <input type="range" id="zoom" min="10" max="240" value="60">
+  </div>
+  <div class="tl-body">
+    <div class="tl-labels"><div></div><div>🎞 Video</div><div id="lbl-text">𝐓 Texto</div><div id="lbl-effect">✨ Efectos</div></div>
+    <div class="tl-scroll" id="tlScroll">
+      <div class="tl-inner" id="tlInner">
+        <div class="ruler" id="ruler"></div>
+        <div class="track" id="trk-clip"></div>
+        <div class="track" id="trk-text"></div>
+        <div class="track" id="trk-effect"></div>
+        <div class="playhead" id="playhead"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<dialog id="settings">
+  <h3 style="margin-top:0">Ajustes del editor</h3>
+  <label for="anthropicKey">Anthropic API key</label>
+  <input type="password" id="anthropicKey" placeholder="sk-ant-..." autocomplete="off">
+  <div class="hint">Consíguela en <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">platform.claude.com</a>. Se guarda solo en este navegador. También puedes definir <code>ANTHROPIC_API_KEY</code> en el servidor. <span id="serverKeyNote"></span></div>
+  <label for="claudeModel">Modelo</label>
+  <select id="claudeModel"></select>
+  <label for="frameCount">Fotogramas que ve Claude</label>
+  <select id="frameCount">
+    <option value="0">Ninguno (solo la línea de tiempo)</option>
+    <option value="4">4</option>
+    <option value="8" selected>8</option>
+    <option value="12">12</option>
+    <option value="16">16</option>
+  </select>
+  <div class="hint">Más fotogramas = Claude entiende mejor el video, pero tarda y cuesta más.</div>
+  <div style="display:flex; gap:8px; margin-top:18px; justify-content:flex-end">
+    <button id="btnCloseSettings">Cancelar</button>
+    <button id="btnSaveSettings" class="primary">Guardar</button>
+  </div>
+</dialog>
+
+<dialog id="exportDlg">
+  <h3 style="margin-top:0">Exportando video…</h3>
+  <div class="hint" id="exportInfo">Se reproduce el proyecto en tiempo real mientras se graba.</div>
+  <div class="progress"><div id="exportBar"></div></div>
+  <div style="display:flex; justify-content:flex-end; margin-top:16px"><button id="btnCancelExport">Cancelar</button></div>
+</dialog>
+
+<div class="err" id="toast"></div>
+<script src="/video.js"></script>
+</body>
+</html>

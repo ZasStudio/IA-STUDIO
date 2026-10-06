@@ -1,10 +1,15 @@
 {
   "name": "ia-studio",
   "version": "1.0.0",
-  "description": "Plataforma para generar imágenes con la API de Google (Gemini / Imagen)",
+  "description": "Generador de imágenes (Google Gemini / Imagen) y editor de video con Claude",
   "type": "module",
   "scripts": {
     "start": "node server.js"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0"
+  }
 }
