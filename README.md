@@ -49,3 +49,19 @@ rechaza una petición.
 
 Las claves nunca se exponen a terceros: el navegador las envía a tu propio servidor, que llama a Google o Anthropic.
 No publiques este servidor en internet con tus claves en `.env` sin añadir autenticación.
+
+## Motion graphics con Claude Code (Remotion)
+
+`motion/` es un proyecto [Remotion](https://www.remotion.dev). La versión publicada del editor tiene una pestaña
+**Motion ✦** que envía pedidos a Claude Code; Claude Code escribe la composición, la renderiza (WebM con
+transparencia o MP4) y la devuelve al editor, donde se añade a la pista **Gráficos** encima del video.
+El procedimiento está en `CLAUDE.md`.
+
+```bash
+cd motion && npm install
+npm run studio                                   # vista previa interactiva de Remotion
+node render.mjs ZasIntro out/intro.webm --width 1920 --height 1080 --seconds 5
+```
+
+Remotion es gratis para personas y equipos pequeños; las empresas más grandes necesitan una licencia
+(ver remotion.dev/license).

@@ -29,7 +29,7 @@ const ANIMS = { none: "Ninguna", fade: "Fundido", "slide-up": "Subir", "slide-do
 const FONTS = ["Inter", "Montserrat", "Bebas Neue", "Playfair Display", "Permanent Marker", "Roboto Mono"];
 const EFFECTS = { "zoom-in": "Zoom in", "zoom-out": "Zoom out", shake: "Temblor", flash: "Flash", vignette: "Viñeta", bw: "Blanco y negro", sepia: "Sepia", warm: "Cálido", cool: "Frío", vivid: "Vívido", blur: "Desenfoque", letterbox: "Cine (bandas)" };
 const ASPECTS = { "16:9": [1920, 1080], "9:16": [1080, 1920], "1:1": [1080, 1080], "4:5": [1080, 1350] };
-const KIND = { text: "texts", clip: "clips", effect: "effects" };
+const KIND = { text: "texts", clip: "clips", effect: "effects", overlay: "overlays" };
 const SUGGESTIONS = [
   "Añade un título animado al inicio",
   "Subtítulos estilo TikTok con la transcripción",
@@ -40,8 +40,9 @@ const SUGGESTIONS = [
 ];
 
 // ---------- estado ----------
-const newProject = () => ({ aspect: "16:9", width: 1920, height: 1080, clips: [], texts: [], effects: [] });
+const newProject = () => ({ aspect: "16:9", width: 1920, height: 1080, clips: [], texts: [], effects: [], overlays: [] });
 let project = (() => { try { return JSON.parse(ls.get("vid.project")) || newProject(); } catch { return newProject(); } })();
+project.overlays ??= [];
 const assets = new Map(); // id -> { id, name, duration, width, height, url, el, thumb, gain }
 let pending = null; // { message, changes: [{ ...cambio, _id, accepted }] }
 let view = project; // proyecto mostrado (con propuestas aceptadas si el toggle está activo)
@@ -72,7 +73,7 @@ function layout(p) {
 }
 function projectDuration(p, lay = layout(p)) {
   const end = lay.length ? lay[lay.length - 1].t1 : 0;
-  return Math.max(end, ...p.texts.map((x) => x.end), ...p.effects.map((x) => x.end), 0);
+  return Math.max(end, ...p.texts.map((x) => x.end), ...p.effects.map((x) => x.end), ...(p.overlays || []).map((x) => x.end), 0);
 }
 const clipAt = (lay, time) => lay.find((c) => time >= c.t0 && time < c.t1) || (lay.length && time >= lay[lay.length - 1].t1 - 1e-3 && time <= lay[lay.length - 1].t1 ? lay[lay.length - 1] : null);
 const findItem = (p, kind, id) => p[KIND[kind]]?.find((x) => x.id === id);
@@ -109,6 +110,23 @@ function sanitizeText(x) {
 }
 function sanitizeEffect(x) {
   return { id: String(x.id || uid("fx")), type: EFFECTS[x.type] ? x.type : "zoom-in", start: Math.max(0, +x.start || 0), end: Math.max((+x.start || 0) + 0.1, +x.end || 1), intensity: clamp(x.intensity == null ? 0.6 : +x.intensity) };
+}
+// Gráficos superpuestos (p. ej. motion graphics con transparencia): se reproducen desde `in` a partir de `start`
+function sanitizeOverlay(x) {
+  const a = assets.get(x.asset);
+  const inn = clamp(+x.in || 0, 0, a?.duration || Infinity);
+  const start = Math.max(0, +x.start || 0);
+  const maxEnd = start + (a ? a.duration - inn : Infinity);
+  return { id: String(x.id || uid("ov")), asset: x.asset, in: inn, start, end: clamp(+x.end || maxEnd, start + 0.1, maxEnd), opacity: clamp(x.opacity == null ? 1 : +x.opacity) };
+}
+const overlaysAt = (p, time) => (p.overlays || []).filter((o) => time >= o.start && time < o.end);
+function addOverlay(assetId, at = t) {
+  pushUndo();
+  const o = sanitizeOverlay({ id: uid("ov"), asset: assetId, start: at, in: 0 });
+  project.overlays.push(o);
+  selected = { kind: "overlay", id: o.id };
+  commit();
+  return o;
 }
 function sanitizeClip(x) {
   const a = assets.get(x.asset);
@@ -196,7 +214,7 @@ function refresh(panels = true) {
   dur = projectDuration(view, L);
   if (t > dur) t = dur;
   $("previewBadge").classList.toggle("on", !!pending && $("showProposals").checked && accepted.length > 0);
-  $("stageEmpty").style.display = project.clips.length || project.texts.length ? "none" : "";
+  $("stageEmpty").style.display = project.clips.length || project.texts.length || project.overlays.length ? "none" : "";
   $("aspect").value = project.aspect;
   $("pendingCount").textContent = pending ? pending.changes.length : "";
   $("btnUndo").disabled = !undoStack.length;
@@ -272,6 +290,16 @@ function drawFrame(c, p, lay, time, opts = {}) {
       const bar = H * 0.12 * i * easeOut(clamp(k * 4));
       c.fillStyle = "#000"; c.fillRect(0, 0, W, bar); c.fillRect(0, H - bar, W, bar);
     }
+  }
+
+  for (const o of overlaysAt(p, time)) {
+    const v = assets.get(o.asset)?.el;
+    if (!v || v.readyState < 2 || !v.videoWidth) continue;
+    c.save();
+    c.globalAlpha = o.opacity;
+    const r = Math.max(W / v.videoWidth, H / v.videoHeight);
+    c.drawImage(v, (W - v.videoWidth * r) / 2, (H - v.videoHeight * r) / 2, v.videoWidth * r, v.videoHeight * r);
+    c.restore();
   }
 
   const boxes = [];
@@ -354,13 +382,18 @@ function drawText(c, tx, time, W, H, S) {
 
 // ---------- reproducción ----------
 function syncVideos(lay, time) {
+  // Qué archivo suena/se ve ahora y en qué segundo: el clip principal y los gráficos superpuestos
+  const active = new Map();
   const clip = clipAt(lay, time);
+  if (clip) active.set(clip.asset, { target: clip.in + (time - clip.t0) * clip.speed, rate: clip.speed, volume: clip.volume });
+  for (const o of overlaysAt(view, time)) if (!active.has(o.asset)) active.set(o.asset, { target: o.in + (time - o.start), rate: 1, volume: 0 });
   for (const a of assets.values()) {
     const v = a.el;
-    if (!clip || a.id !== clip.asset) { if (!v.paused) v.pause(); continue; }
-    const target = clip.in + (time - clip.t0) * clip.speed;
-    v.playbackRate = clip.speed;
-    if (a.gain) { v.volume = 1; a.gain.gain.value = clip.volume; } else v.volume = clamp(clip.volume);
+    const st = active.get(a.id);
+    if (!st) { if (!v.paused) v.pause(); continue; }
+    const target = st.target;
+    v.playbackRate = st.rate;
+    if (a.gain) { v.volume = 1; a.gain.gain.value = st.volume; } else v.volume = clamp(st.volume);
     if (playing) {
       if (Math.abs(v.currentTime - target) > 0.3) v.currentTime = target;
       if (v.paused) v.play().catch(() => {});
@@ -514,7 +547,7 @@ async function importFiles(files) {
 async function restoreAssets() {
   let rows = [];
   try { rows = await idb("readonly", (s) => s.getAll()); } catch {}
-  const used = new Set(project.clips.map((c) => c.asset));
+  const used = new Set([...project.clips, ...project.overlays].map((c) => c.asset));
   for (const r of rows) {
     if (!used.has(r.id)) { idb("readwrite", (s) => s.delete(r.id)).catch(() => {}); continue; }
     try { await loadAsset(r.id, r.name, r.blob); } catch {}
@@ -522,6 +555,7 @@ async function restoreAssets() {
   const missing = project.clips.filter((c) => !assets.has(c.asset));
   if (missing.length) {
     project.clips = project.clips.filter((c) => assets.has(c.asset));
+    project.overlays = project.overlays.filter((c) => assets.has(c.asset));
     toast("Algunos videos ya no estaban guardados y se quitaron del proyecto.");
   }
   renderAssets();
@@ -534,7 +568,9 @@ function renderAssets() {
     h("div", { class: "asset" },
       h("img", { src: a.thumb || "", alt: "" }),
       h("div", {}, h("div", { class: "n", title: a.name }, a.name), h("div", { class: "hint" }, `${fmt(a.duration)} · ${a.width}×${a.height}`)),
-      h("button", { class: "icon", title: "Añadir al final", onclick: () => { pushUndo(); project.clips.push(sanitizeClip({ id: uid("c"), asset: a.id, in: 0, out: a.duration })); commit(); } }, "＋"),
+      h("div", { style: "display:flex; gap:4px" },
+      h("button", { class: "icon", title: "Superponer en el cursor (gráficos con transparencia)", onclick: () => addOverlay(a.id) }, "⧉"),
+      h("button", { class: "icon", title: "Añadir al final como clip", onclick: () => { pushUndo(); project.clips.push(sanitizeClip({ id: uid("c"), asset: a.id, in: 0, out: a.duration })); commit(); } }, "＋")),
     )));
 }
 
@@ -574,10 +610,11 @@ function renderTimeline() {
     return el;
   };
   $("trk-clip").replaceChildren(...L.map((c) => blk("clip", c, c.t0, c.t1, `${assets.get(c.asset)?.name || c.asset}${c.speed !== 1 ? ` · ${c.speed}×` : ""}`)));
-  const tl = lanes(view.texts), fl = lanes(view.effects);
+  const tl = lanes(view.texts), fl = lanes(view.effects), ol = lanes(view.overlays || []);
+  $("trk-overlay").replaceChildren(...(view.overlays || []).map((x) => blk("overlay", x, x.start, x.end, `✦ ${assets.get(x.asset)?.name || x.asset}`, ol.lane.get(x.id))));
   $("trk-text").replaceChildren(...view.texts.map((x) => blk("text", x, x.start, x.end, x.content.replace(/\n/g, " "), tl.lane.get(x.id))));
   $("trk-effect").replaceChildren(...view.effects.map((x) => blk("effect", x, x.start, x.end, EFFECTS[x.type], fl.lane.get(x.id))));
-  for (const [id, n] of [["text", tl.count], ["effect", fl.count]]) {
+  for (const [id, n] of [["text", tl.count], ["overlay", ol.count], ["effect", fl.count]]) {
     const hgt = `${10 + Math.max(1, n) * LANE}px`;
     $(`trk-${id}`).style.height = hgt;
     $(`lbl-${id}`).style.height = hgt;
@@ -604,14 +641,16 @@ function startDrag(e, kind, id) {
   const item = findItem(project, kind, id);
   if (!item || kind === "clip") return; // los clips se editan en el panel; las propuestas no se arrastran
   const mode = e.target.classList.contains("l") ? "l" : e.target.classList.contains("r") ? "r" : "move";
-  const x0 = e.clientX, s0 = item.start, e0 = item.end;
+  const x0 = e.clientX, s0 = item.start, e0 = item.end, in0 = item.in;
   let moved = false;
   const onMove = (ev) => {
     const d = (ev.clientX - x0) / pps();
     if (!moved && Math.abs(ev.clientX - x0) < 3) return;
     if (!moved) { pushUndo(); moved = true; }
     if (mode === "move") { item.start = round(Math.max(0, s0 + d)); item.end = round(item.start + (e0 - s0)); }
+    else if (kind === "overlay" && mode === "l") { const dd = clamp(d, -in0, e0 - s0 - 0.1); item.start = round(Math.max(0, s0 + dd)); item.in = round(in0 + (item.start - s0)); }
     else if (mode === "l") item.start = round(clamp(s0 + d, 0, item.end - 0.1));
+    else if (kind === "overlay") Object.assign(item, sanitizeOverlay({ ...item, end: round(Math.max(item.start + 0.1, e0 + d)) }));
     else item.end = round(Math.max(item.start + 0.1, e0 + d));
     refresh();
   };
@@ -673,7 +712,7 @@ function changeInfo(ch) {
   }
 }
 
-const FIELD_LABEL = { content: "Texto", start: "Inicio", end: "Fin", x: "X", y: "Y", size: "Tamaño", color: "Color", font: "Fuente", weight: "Peso", background: "Fondo", stroke: "Contorno", animIn: "Entrada", animOut: "Salida", animDuration: "Duración anim.", type: "Tipo", intensity: "Intensidad", in: "Entrada origen", out: "Salida origen", speed: "Velocidad", volume: "Volumen", fadeIn: "Fundido inicio", fadeOut: "Fundido final" };
+const FIELD_LABEL = { opacity: "Opacidad", content: "Texto", start: "Inicio", end: "Fin", x: "X", y: "Y", size: "Tamaño", color: "Color", font: "Fuente", weight: "Peso", background: "Fondo", stroke: "Contorno", animIn: "Entrada", animOut: "Salida", animDuration: "Duración anim.", type: "Tipo", intensity: "Intensidad", in: "Entrada origen", out: "Salida origen", speed: "Velocidad", volume: "Volumen", fadeIn: "Fundido inicio", fadeOut: "Fundido final" };
 const showVal = (k, v) => v == null ? "—" : k === "animIn" || k === "animOut" ? ANIMS[v] || v : k === "type" ? EFFECTS[v] || v : typeof v === "number" ? round(v) : String(v);
 
 function renderReview() {
@@ -781,10 +820,12 @@ function renderElements() {
     ...lay.map((c) => row("clip", c, "var(--clip)", summaryOf("clip", c) + (c.speed !== 1 ? ` · ${c.speed}×` : ""), c.t0)),
     h("div", { class: "group-h" }, `Textos y animaciones (${project.texts.length})`, h("button", { class: "icon", onclick: addText }, "＋")),
     ...[...project.texts].sort((a, b) => a.start - b.start).map((x) => row("text", x, "var(--txt)", `${summaryOf("text", x)} · ${ANIMS[x.animIn]}/${ANIMS[x.animOut]}`)),
+    h("div", { class: "group-h" }, `Gráficos superpuestos (${project.overlays.length})`),
+    ...[...project.overlays].sort((a, b) => a.start - b.start).map((x) => row("overlay", x, "var(--ov)", summaryOf("overlay", x))),
     h("div", { class: "group-h" }, `Efectos (${project.effects.length})`, h("button", { class: "icon", onclick: addEffect }, "＋")),
     ...[...project.effects].sort((a, b) => a.start - b.start).map((x) => row("effect", x, "var(--fx)", EFFECTS[x.type])),
   ];
-  if (!project.clips.length && !project.texts.length && !project.effects.length) kids.push(h("div", { class: "empty-pane" }, "Todavía no hay elementos."));
+  if (!project.clips.length && !project.texts.length && !project.effects.length && !project.overlays.length) kids.push(h("div", { class: "empty-pane" }, "Todavía no hay elementos."));
   const item = selected && findItem(project, selected.kind, selected.id);
   if (item) kids.push(inspector(selected.kind, item));
   else if (selected && findItem(view, selected.kind, selected.id)) kids.push(h("div", { class: "form hint" }, "Este elemento es una propuesta de Claude. Aplícala para poder editarla."));
@@ -826,6 +867,21 @@ function inspector(kind, item) {
       h("div", { class: "btns" },
         h("button", { onclick: () => previewRange([item.start, item.end]) }, "▶ Ver animación"),
         h("button", { onclick: () => { pushUndo(); project.texts.push({ ...clone(item), id: uid("t"), start: item.end, end: item.end + (item.end - item.start) }); commit(); } }, "Duplicar"),
+        h("button", { class: "danger", onclick: deleteSelected }, "Eliminar")),
+    );
+  } else if (kind === "overlay") {
+    const a = assets.get(item.asset);
+    const setO = (k) => (e) => { pushUndo(false); Object.assign(item, sanitizeOverlay({ ...item, [k]: +e.target.value })); save(); refresh(); };
+    const f = (k, step = 0.1) => h("div", { class: "f" }, h("label", {}, FIELD_LABEL[k]), h("input", { type: "number", step, min: 0, value: round(item[k], 3), "data-field": k, onchange: setO(k) }));
+    box.append(
+      h("h4", {}, `Gráfico · ${a?.name || item.asset}`),
+      h("div", { class: "hint", style: "margin-bottom:8px" }, `Se dibuja encima del video y debajo de los textos. Duración del archivo: ${fmt(a?.duration)}`),
+      h("div", { class: "g2" }, f("start"), f("end")),
+      h("div", { class: "g2" }, f("in"), h("div", { class: "f" }, h("label", {}, `${FIELD_LABEL.opacity} · ${round(item.opacity)}`),
+        h("input", { type: "range", min: 0, max: 1, step: 0.01, value: item.opacity, oninput: (e) => { pushUndo(false); item.opacity = +e.target.value; save(); refresh(false); } }))),
+      h("div", { class: "btns" },
+        h("button", { onclick: () => previewRange([item.start, item.end]) }, "▶ Ver gráfico"),
+        h("button", { onclick: () => { pushUndo(); const len = item.end - item.start; Object.assign(item, sanitizeOverlay({ ...item, start: round(t), end: round(t) + len })); commit(); } }, "Mover al cursor"),
         h("button", { class: "danger", onclick: deleteSelected }, "Eliminar")),
     );
   } else if (kind === "effect") {
@@ -999,7 +1055,7 @@ async function send() {
 
 // ---------- exportación ----------
 async function startExport() {
-  if (!project.clips.length && !project.texts.length) return toast("No hay nada que exportar.");
+  if (!project.clips.length && !project.texts.length && !project.overlays.length) return toast("No hay nada que exportar.");
   if (!window.MediaRecorder || !canvas.captureStream) return toast("Tu navegador no permite exportar video. Usa Chrome o Edge.");
   if (pending && !confirm("Hay propuestas sin aplicar. Se exportará solo el proyecto aplicado. ¿Continuar?")) return;
   ensureAudio();

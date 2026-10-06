@@ -1,0 +1,21 @@
+    <div class="pane" id="pane-motion">
+      <div class="claude-msg">✦ Claude Code crea motion graphics con Remotion (títulos, lower thirds, tipografía cinética, logos, llamados a la acción) y te los devuelve aquí listos para superponer sobre tu video.</div>
+      <div class="motion-form" id="motionForm">
+        <label>Tipo</label>
+        <div class="kinds" id="motionKinds"></div>
+        <label for="motionBrief">Describe el motion graphic</label>
+        <textarea id="motionBrief" rows="4" maxlength="2500" placeholder="Ej: Intro con el texto ZAS STUDIO, letras que entran con ritmo, una línea de acento morada y el subtítulo «Estudio creativo»"></textarea>
+        <div class="mrow">
+          <div><label for="motionSeconds">Duración</label>
+            <select id="motionSeconds"><option value="3">3 s</option><option value="5" selected>5 s</option><option value="8">8 s</option><option value="10">10 s</option><option value="15">15 s</option></select></div>
+          <div><label for="motionBg">Fondo</label>
+            <select id="motionBg"><option value="transparent">Transparente (superponer)</option><option value="opaque">Opaco (como clip)</option></select></div>
+        </div>
+        <label for="motionBrand">Colores, fuentes o marca (opcional)</label>
+        <input type="text" id="motionBrand" maxlength="300" placeholder="Ej: morado #7c5cff y blanco, tipografía condensada">
+        <button class="primary" id="btnMotionSend">Enviar a Claude Code</button>
+        <div class="mstatus" id="motionStatus"></div>
+      </div>
+      <div class="group-h" style="margin-top:16px">Tus motion graphics</div>
+      <div id="motionList"></div>
+    </div>
