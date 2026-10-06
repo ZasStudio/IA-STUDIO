@@ -471,6 +471,13 @@ async function loadAsset(id, name, blob) {
   el.addEventListener("seeked", () => (dirty = true));
   el.addEventListener("loadeddata", () => (dirty = true));
   await once(el, "loadedmetadata", 10000);
+  if (el.duration === Infinity) {
+    // Los WebM grabados en el navegador no traen duración: se fuerza buscando al final
+    el.currentTime = 1e7;
+    await once(el, "durationchange", 5000);
+    el.currentTime = 0;
+    await once(el, "seeked", 2000);
+  }
   if (!el.duration || !isFinite(el.duration)) throw new Error(`No se pudo leer "${name}"`);
   const a = { id, name, duration: el.duration, width: el.videoWidth, height: el.videoHeight, url, el, thumb: "" };
   // miniatura
