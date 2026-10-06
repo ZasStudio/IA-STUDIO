@@ -49,6 +49,11 @@ export const Landscape: React.FC<{palette?: keyof typeof LANDSCAPES; drift?: num
             <stop offset="55%" stopColor="#dfe6ee" />
             <stop offset="100%" stopColor={pal.layers[1]} />
           </linearGradient>
+          <linearGradient id={`${id}haze`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={pal.haze} stopOpacity={0} />
+            <stop offset="45%" stopColor={pal.haze} stopOpacity={1} />
+            <stop offset="100%" stopColor={pal.haze} stopOpacity={0} />
+          </linearGradient>
           <filter id={`${id}grain`}>
             <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={3} />
             <feColorMatrix type="saturate" values="0" />
@@ -70,7 +75,7 @@ export const Landscape: React.FC<{palette?: keyof typeof LANDSCAPES; drift?: num
             <g key={i} transform={`translate(${dx}, 0)`}>
               <path d={ridge(`${seed}${i}`, base, amp, freq)} fill={fill} />
               {/* velo de niebla entre capas: perspectiva atmosférica */}
-              <rect y={base - 40} width="1920" height="200" fill={pal.haze} opacity={0.18 * (1 - depth)} />
+              <rect x={-40} y={base - 140} width="2600" height="260" fill={`url(#${id}haze)`} opacity={0.3 * (1 - depth)} />
             </g>
           );
         })}
