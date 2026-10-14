@@ -1,6 +1,9 @@
 import '@fontsource-variable/plus-jakarta-sans';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/inter/wght-italic.css';
+import '@fontsource/anton';
+import '@fontsource/instrument-serif/400.css';
+import '@fontsource/instrument-serif/400-italic.css';
 import {continueRender, delayRender} from 'remotion';
 
 // Espera a que la fuente variable esté cargada antes de renderizar cualquier frame
@@ -11,6 +14,10 @@ Promise.all(
     document.fonts.load(`${w} 40px "Plus Jakarta Sans Variable"`),
     document.fonts.load(`${w} 40px "Inter Variable"`),
     document.fonts.load(`italic ${w} 40px "Inter Variable"`),
+  ]).concat([
+    document.fonts.load('400 40px "Anton"'),
+    document.fonts.load('400 40px "Instrument Serif"'),
+    document.fonts.load('italic 400 40px "Instrument Serif"'),
   ]),
 )
   .then(() => continueRender(handle))

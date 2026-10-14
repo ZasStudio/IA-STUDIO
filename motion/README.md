@@ -4,13 +4,17 @@ Recreaciones de estilos de edición y motion graphics a partir de videos de refe
 tipografía cinética, desenfoques, rebotes, cristal, degradados y mapa de degradado, todo con
 [Remotion](https://www.remotion.dev) (React → video).
 
-Incluye **dos estilos** aprendidos de dos videos de referencia:
+Incluye **tres estilos** aprendidos de videos de referencia:
 
 1. **Spark** (`SparkPromo`): verde profundo y lima, glow, cristal, rebotes, cintas y mapa de degradado.
 2. **Prompt** (`PromptPromo` + `PromptReel`): promo SaaS minimalista tipo Apple (azul ultramar →
    pastel, Inter, letras desenfocadas, barra de prompt de cristal, mosaico de píxeles, lista-rueda,
    abanico 3D de webs, logo-flor). `PromptReel` es la versión vertical 9:16 "grabada con el móvil"
    en un monitor con After Effects, luz cálida y cámara en mano.
+3. **Documental** (`DocReel`, 9:16): reel de storytelling con presentador + B-roll de "archivo" y
+   **subtítulos editoriales apilados** palabra por palabra (condensada, sans, serif itálica, contorno),
+   palabras clave en color con parpadeo y brillo, humo, papel rasgado, pegatinas, móvil con dedo,
+   contador de años, transiciones whip / destello / zoom.
 
 ## Uso
 
@@ -21,6 +25,7 @@ npm run studio                 # editor visual en http://localhost:3000
 npm run render                 # → out/spark-promo.mp4 (1920×1080, ~41 s)
 npm run render:prompt          # → out/prompt-promo.mp4 (1920×1080, ~58 s)
 npm run render:reel            # → out/prompt-reel-vertical.mp4 (1080×1920)
+npm run render:doc             # → out/doc-reel.mp4 (1080×1920, ~51 s)
 ```
 
 Si Remotion no puede descargar su Chromium, usa uno ya instalado:
@@ -61,6 +66,15 @@ Sin fotos se usa una escena de marcador generada por código.
 | `prompt/scenes/*` | 12 escenas: tecleo → barra de prompt, dashboard con contadores, montaje de webs, ventana de tren que la cámara atraviesa, "It's live", letras que caen, lista-rueda, "Faster…", abanico 3D con motion blur, logo y "Now it starts with a prompt" |
 | `prompt/MonitorReel.tsx` | Reel vertical: monitor en perspectiva con interfaz de After Effects (timeline con playhead real), escritorio, teclado desenfocado, cámara en mano con ruido, etalonaje cálido y grano |
 
+### Estilo "Documental" (`src/doc/`)
+
+| Archivo | Qué hace |
+| --- | --- |
+| `doc/Captions.tsx` | `StackCard`: subtítulos apilados con un mini-marcado (`*CLAVE` condensada, `~PALABRA` contorno, `_de` serif itálica, `=palabra` serif, sufijos `!` parpadeo, `^` brillo, `+`/`-` tamaño, `@color`, líneas con ` / `); salida rápida o "desintegrada" (polvo) |
+| `doc/Kit.tsx` | Acabado documental (grano, viñeta, sepia/B&N), push-in, humo, presentador de marcador, papel rasgado, etiqueta de papel, pegatina, siluetas de época, flecha punteada que se dibuja, móvil con dedo, microbios, bandera ondeando, la Tierra, contador de años, muro de televisores, rollo de papel |
+| `doc/transitions.tsx` | Whip pan con desenfoque direccional, corte con destello blanco, zoom de entrada |
+| `doc/DocReel.tsx` | Las 17 escenas y el montaje. Con `--props='{"presenter":"tu-video.mp4"}'` los planos de presentador usan tu video (grabado siguiendo el guion) |
+
 ## Técnicas clave
 
 - **Desenfoque**: `filter: blur()` animado en entradas/salidas y transiciones; `backdrop-filter` en el cristal.
@@ -78,5 +92,10 @@ Sin fotos se usa una escena de marcador generada por código.
 - **Lista-rueda**: una posición continua `pos` avanza a saltos con ease-in-out; cada fila calcula su
   distancia al foco para escala, opacidad, desenfoque y la máscara que revela su miniatura.
 - **Cámara en mano**: dos capas de ruido (deriva lenta + micro-temblor) en traslación, rotación y zoom.
+- **Subtítulos editoriales**: cada palabra entra en su frame (≈ 8 frames entre palabras = ritmo del habla),
+  con interlineado negativo para que la serif pequeña "encaje" entre dos palabras grandes; una sola
+  palabra de color por tarjeta y, si es la clave, parpadea como un neón al entrar.
+- **Ritmo documental**: un plano cada 2–4 s, alternando presentador (jump-cut con zoom distinto) y B-roll;
+  todo plano de B-roll tiene un push-in lento para que nunca esté quieto.
 - **Curvas**: ease-out fuerte `cubic-bezier(0.23, 1, 0.32, 1)` para entradas, ease-in-out
   `cubic-bezier(0.77, 0, 0.175, 1)` para movimientos en pantalla; ease-in solo en salidas.
