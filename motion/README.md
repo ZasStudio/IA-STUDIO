@@ -4,7 +4,7 @@ Recreaciones de estilos de edición y motion graphics a partir de videos de refe
 tipografía cinética, desenfoques, rebotes, cristal, degradados y mapa de degradado, todo con
 [Remotion](https://www.remotion.dev) (React → video).
 
-Incluye **tres estilos** aprendidos de videos de referencia:
+Incluye **tres estilos** aprendidos de videos de referencia, y una **reedición** del tercero con su propio metraje:
 
 1. **Spark** (`SparkPromo`): verde profundo y lima, glow, cristal, rebotes, cintas y mapa de degradado.
 2. **Prompt** (`PromptPromo` + `PromptReel`): promo SaaS minimalista tipo Apple (azul ultramar →
@@ -15,6 +15,10 @@ Incluye **tres estilos** aprendidos de videos de referencia:
    **subtítulos editoriales apilados** palabra por palabra (condensada, sans, serif itálica, contorno),
    palabras clave en color con parpadeo y brillo, humo, papel rasgado, pegatinas, móvil con dedo,
    contador de años, transiciones whip / destello / zoom.
+4. **BarberReel** (9:16, 1:58): reedición del reel documental original con **su propio metraje y su voz**:
+   subtítulos quemados borrados, presentadora recortada para poner el texto *detrás* de ella, subtítulos
+   nuevos sincronizados palabra a palabra con Anton + Montserrat + Playfair Display, mapa real que gira a
+   EE. UU. y Europa, año rodante, estrella de la vida, efecto rebobinar, texto relleno de video.
 
 ## Uso
 
@@ -26,6 +30,7 @@ npm run render                 # → out/spark-promo.mp4 (1920×1080, ~41 s)
 npm run render:prompt          # → out/prompt-promo.mp4 (1920×1080, ~58 s)
 npm run render:reel            # → out/prompt-reel-vertical.mp4 (1080×1920)
 npm run render:doc             # → out/doc-reel.mp4 (1080×1920, ~51 s)
+npm run render:barber          # → out/barber-reel.mp4 (1080×1920, ~118 s; necesita public/barber)
 ```
 
 Si Remotion no puede descargar su Chromium, usa uno ya instalado:
@@ -74,6 +79,27 @@ Sin fotos se usa una escena de marcador generada por código.
 | `doc/Kit.tsx` | Acabado documental (grano, viñeta, sepia/B&N), push-in, humo, presentador de marcador, papel rasgado, etiqueta de papel, pegatina, siluetas de época, flecha punteada que se dibuja, móvil con dedo, microbios, bandera ondeando, la Tierra, contador de años, muro de televisores, rollo de papel |
 | `doc/transitions.tsx` | Whip pan con desenfoque direccional, corte con destello blanco, zoom de entrada |
 | `doc/DocReel.tsx` | Las 17 escenas y el montaje. Con `--props='{"presenter":"tu-video.mp4"}'` los planos de presentador usan tu video (grabado siguiendo el guion) |
+
+### Reedición "BarberReel" (`src/barber/` + `tools/`)
+
+El metraje no se versiona (es del autor del video). Para regenerarlo:
+
+```bash
+pip install opencv-python-headless onnxruntime sherpa-onnx
+# modelo de segmentación de personas (rembg): u2net_human_seg.onnx
+python3 -P tools/clean_footage.py <video_referencia.mp4> <u2net_human_seg.onnx> public/barber
+```
+
+| Archivo | Qué hace |
+| --- | --- |
+| `tools/textclean.py` | Detección de subtítulos quemados (claro/saturado + alta frecuencia local), inpainting, segmentación de persona (U²-Net ONNX) y "modo retrato" |
+| `tools/clean_footage.py` | Lista de planos del original → clips/imagenes limpios a 1080×1920 (Lanczos + nitidez), video con alfa de la presentadora (`*_alpha.webm`) y `voice.wav` |
+| `barber/words.json` | Transcripción con tiempo por palabra (Parakeet TDT 0.6B v3 vía sherpa-onnx), con erratas corregidas a mano |
+| `barber/Editorial.tsx` | Subtítulos apilados sincronizados con las palabras; muelle de "golpe" en palabras grandes, revelado por máscara en las pequeñas, parpadeo de neón, salida en polvo |
+| `barber/cards.ts` | El guion de tarjetas (rango de palabras + marcado) |
+| `barber/WorldMap.tsx` | Globo ortográfico real (d3-geo + world-atlas 1:50m): rota por keyframes, países encendidos en onda, frontera que se dibuja, etiquetas con guía |
+| `barber/Gfx.tsx` | Ken Burns, humo, etiqueta de papel, año rodante con motion blur, estrella de la vida, guante, check, pulso de alarma, rebobinado VHS, texto relleno de video |
+| `barber/BarberReel.tsx` | Montaje: planos base con transiciones, tarjetas detrás de la presentadora, silueta alfa encima, tarjetas delante, grano y viñeta |
 
 ## Técnicas clave
 
