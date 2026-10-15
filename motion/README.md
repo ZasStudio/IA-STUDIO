@@ -31,6 +31,7 @@ npm run render:prompt          # → out/prompt-promo.mp4 (1920×1080, ~58 s)
 npm run render:reel            # → out/prompt-reel-vertical.mp4 (1080×1920)
 npm run render:doc             # → out/doc-reel.mp4 (1080×1920, ~51 s)
 npm run render:barber          # → out/barber-reel.mp4 (1080×1920, ~118 s; necesita public/barber)
+npm run render:sanbarber       # → out/sanbarber-reel.mp4 (1080×1920, 33 s): cómo comprar en sanbarber.pe
 ```
 
 Si Remotion no puede descargar su Chromium, usa uno ya instalado:
@@ -100,6 +101,14 @@ python3 -P tools/clean_footage.py <video_referencia.mp4> <u2net_human_seg.onnx> 
 | `barber/WorldMap.tsx` | Globo ortográfico real (d3-geo + world-atlas 1:50m): rota por keyframes, países encendidos en onda, frontera que se dibuja, etiquetas con guía |
 | `barber/Gfx.tsx` | Ken Burns, humo, etiqueta de papel, año rodante con motion blur, estrella de la vida, guante, check, pulso de alarma, rebobinado VHS, texto relleno de video |
 | `barber/BarberReel.tsx` | Montaje: planos base con transiciones, tarjetas detrás de la presentadora, silueta alfa encima, tarjetas delante, grano y viñeta |
+
+### Reel de compra "SanBarberReel" (`src/sanbarber/`)
+
+Recorrido de compra de sanbarber.pe en un móvil 3D: inicio → categoría Máquinas → ficha de la Wahl
+Magic Clip Dorada → carrito (vuelo del producto, contador que rebota, barra de envío gratis) →
+checkout (campos que se teclean) → confirmación → cierre. Productos, precios, ficha técnica, envío y
+tiendas salen de los datos públicos del sitio; logo, colores y métodos de pago son una interpretación
+(el sitio no era accesible desde el entorno de render). Sonidos sintetizados en `public/sanbarber/`.
 
 ## Técnicas clave
 

@@ -10,6 +10,7 @@
     "render:reel": "remotion render PromptReel out/prompt-reel-vertical.mp4",
     "render:doc": "remotion render DocReel out/doc-reel.mp4",
     "render:barber": "remotion render BarberReel out/barber-reel.mp4",
+    "render:sanbarber": "remotion render SanBarberReel out/sanbarber-reel.mp4",
     "still": "remotion still SparkPromo out/frame.png --frame=60",
     "typecheck": "tsc --noEmit"
   },
