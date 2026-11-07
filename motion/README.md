@@ -121,8 +121,8 @@ con `tools/carreport_audio.py` (sin derechos de terceros). Masterizar a −14 LU
 - **Voz**: 7 frases de Magnific (voz "Esteban Villalobos", ElevenLabs v3) en `public/carreport/vo/`, con tiempos
   por palabra en `vo/words.json`; las escenas, alertas y checks del reporte entran cuando la voz los nombra.
 - **Auto 3D**: imagen generada con Magnific → modelo GLB (Tripo H3.1) en `public/carreport/car/car.glb`,
-  renderizado con `@remotion/three` (`src/carreport/Car3D.tsx`): luces de estudio, entorno `RoomEnvironment`
-  (sin descargas), sombra de contacto, modo radiografía y haz de escaneo. En contenedores sin GPU hay que
+  renderizado con `@remotion/three` (`src/carreport/Car3D.tsx`): luces de estudio con contraluces cian,
+  sombra propia (sin mapa de entorno: con `scene.environment` la pintura se "lavaba" a partir del 2.º fotograma), modo radiografía y haz de escaneo. En contenedores sin GPU hay que
   renderizar las pasadas 3D (`CarHook3D`, `CarDanger3D`) con `--gl=swangle`; el comercial las usa pre-renderizadas como video con alfa y se renderiza con el `angle` por defecto. `Car3DTest` gira el auto 360° para revisar.
 
 ## Técnicas clave

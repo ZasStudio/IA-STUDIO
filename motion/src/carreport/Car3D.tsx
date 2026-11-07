@@ -2,10 +2,8 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {continueRender, delayRender, staticFile, useVideoConfig} from 'remotion';
 import {ThreeCanvas} from '@remotion/three';
 import {useThree} from '@react-three/fiber';
-import {ContactShadows} from '@react-three/drei';
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
-import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 /* Auto 3D real (GLB generado con Magnific a partir de una imagen) renderizado con three.js. */
 
@@ -13,6 +11,24 @@ const MODEL = 'carreport/car/car.glb';
 // Orientación del modelo generado: rota para que el frente apunte a +X.
 const BASE_ROT_Y = 0;
 const LENGTH = 4.6; // largo normalizado del auto en unidades de escena
+
+/** Textura de sombra suave (gradiente radial), generada una vez. */
+let shadowTex: THREE.CanvasTexture | null = null;
+const getShadowTex = () => {
+  if (!shadowTex) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d')!;
+    const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, 'rgba(0,0,0,0.95)');
+    grad.addColorStop(0.55, 'rgba(0,0,0,0.6)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 256);
+    shadowTex = new THREE.CanvasTexture(c);
+  }
+  return shadowTex;
+};
 
 let cached: Promise<THREE.Group> | null = null;
 const loadCar = () => {
@@ -60,17 +76,6 @@ const useCar = () => {
       });
   }, [handle]);
   return car;
-};
-
-const Env: React.FC = () => {
-  const {gl, scene} = useThree();
-  useEffect(() => {
-    const pm = new THREE.PMREMGenerator(gl);
-    const env = pm.fromScene(new RoomEnvironment(), 0.04).texture;
-    scene.environment = env;
-    return () => env.dispose();
-  }, [gl, scene]);
-  return null;
 };
 
 const Cam: React.FC<{pos: [number, number, number]; target: [number, number, number]; fov: number}> = ({pos, target, fov}) => {
@@ -121,7 +126,6 @@ const CarScene: React.FC<Car3DProps & {car: THREE.Group}> = ({car, rotY, cam = [
   return (
     <>
       <Cam pos={cam} target={target} fov={fov} />
-      <Env />
       <ambientLight intensity={0.25} />
       <directionalLight position={[4, 6, 5]} intensity={2.2} castShadow />
       <directionalLight position={[-6, 2.5, -4]} intensity={3.5} color={rim} />
@@ -139,7 +143,11 @@ const CarScene: React.FC<Car3DProps & {car: THREE.Group}> = ({car, rotY, cam = [
       </group>
       {floor && (
         <>
-          <ContactShadows position={[x, 0.001, 0]} opacity={0.75} scale={10} blur={2.4} far={2.5} resolution={512} />
+          {/* sombra bajo el auto: elipse difuminada que gira con él */}
+          <mesh rotation={[-Math.PI / 2, 0, -ry]} position={[x, 0.004, 0]}>
+            <planeGeometry args={[LENGTH * 1.25, LENGTH * 0.62]} />
+            <meshBasicMaterial map={getShadowTex()} transparent depthWrite={false} />
+          </mesh>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.002, 0]}>
             <circleGeometry args={[4.2, 64]} />
             <meshStandardMaterial color="#0b1424" metalness={0.6} roughness={0.35} transparent opacity={0.85} />
