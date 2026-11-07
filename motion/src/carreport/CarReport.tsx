@@ -81,14 +81,13 @@ const Hook: React.FC = () => {
   const brake = Math.max(0, Math.sin(interpolate(frame, [30, 46], [0, Math.PI], clamp))) * 3;
   return (
     <Scene dur={S.danger - S.hook} inF={0}>
-      <TechBg />
+      {/* fondo + auto 3D pre-renderizados (CarHook3D) */}
+      <OffthreadVideo src={staticFile('carreport/car/hook.mp4')} muted style={{position: 'absolute', inset: 0, width: '100%', height: '100%'}} />
       {/* líneas de velocidad */}
       {drive < 0.95 &&
         Array.from({length: 14}, (_, i) => (
           <div key={i} style={{position: 'absolute', left: x - 200 - random(`sl${i}`) * 500, top: 1050 + random(`sy${i}`) * 300, width: 300 + random(`sw${i}`) * 400, height: 3, background: `linear-gradient(90deg, transparent, ${CR.cyan})`, opacity: (1 - drive) * 0.8}} />
         ))}
-      {/* auto 3D pre-renderizado (CarHook3D) con canal alfa */}
-      <OffthreadVideo src={staticFile('carreport/car/hook.webm')} transparent muted style={{position: 'absolute', inset: 0, width: '100%', height: '100%'}} />
       <Headline y={330} size={104} words={[0, 0.4, 0.48, 0.8, 0.96, 1.28].map((t, i) => ({t: '¿Vas a comprar un auto usado?'.split(' ')[i], at: sec(t), c: i === 5 ? CR.cyan : undefined}))} />
       <Headline y={1540} size={64} words={[{t: 'Antes de pagar,', at: sec(1.92)}, {t: 'revisa', at: sec(3.12)}, {t: 'su', at: sec(3.68)}, {t: 'historial', at: sec(3.92), c: CR.amber}]} />
     </Scene>
@@ -114,10 +113,9 @@ const Danger: React.FC = () => {
   const pulse = shakeAt.reduce((a, s) => Math.max(a, interpolate(frame - s, [0, 3, 14], [0, 0.45, 0], clamp)), 0);
   return (
     <Scene dur={S.plate - S.danger}>
-      <TechBg tint={CR.red} />
-      <AbsoluteFill style={{transform: `translate(${shake}px, ${shake * 0.4}px)`}}>
-        {/* auto 3D en radiografía roja pre-renderizado (CarDanger3D) */}
-        <OffthreadVideo src={staticFile('carreport/car/danger.webm')} transparent muted style={{position: 'absolute', inset: 0, width: '100%', height: '100%'}} />
+      <AbsoluteFill style={{transform: `translate(${shake}px, ${shake * 0.4}px) scale(${1 + Math.abs(shake) * 0.002})`}}>
+        {/* fondo + auto 3D en radiografía pre-renderizados (CarDanger3D) */}
+        <OffthreadVideo src={staticFile('carreport/car/danger.mp4')} muted style={{position: 'absolute', inset: 0, width: '100%', height: '100%'}} />
         <Headline y={300} size={92} words={words('¿Y si el auto tiene un problema oculto?', 2, 3, {6: CR.red, 7: CR.red})} />
         {RISKS.map((r, i) => {
           const at = shakeAt[i];

@@ -123,7 +123,7 @@ con `tools/carreport_audio.py` (sin derechos de terceros). Masterizar a −14 LU
 - **Auto 3D**: imagen generada con Magnific → modelo GLB (Tripo H3.1) en `public/carreport/car/car.glb`,
   renderizado con `@remotion/three` (`src/carreport/Car3D.tsx`): luces de estudio, entorno `RoomEnvironment`
   (sin descargas), sombra de contacto, modo radiografía y haz de escaneo. En contenedores sin GPU hay que
-  renderizar con `--gl=swangle` (ya fijado en `remotion.config.ts`). `Car3DTest` gira el auto 360° para revisar.
+  renderizar las pasadas 3D (`CarHook3D`, `CarDanger3D`) con `--gl=swangle`; el comercial las usa pre-renderizadas como video con alfa y se renderiza con el `angle` por defecto. `Car3DTest` gira el auto 360° para revisar.
 
 ## Técnicas clave
 
