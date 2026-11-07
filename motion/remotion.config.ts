@@ -6,7 +6,7 @@ Config.setCodec('h264');
 Config.setCrf(18);
 Config.setConcurrency(null);
 // Los desenfoques grandes y backdrop-filter funcionan mejor con el renderizador ANGLE.
-Config.setChromiumOpenGlRenderer('angle');
+Config.setChromiumOpenGlRenderer('swangle');
 
 // Permite usar un Chromium ya instalado: REMOTION_BROWSER=/ruta/al/headless_shell
 if (process.env.REMOTION_BROWSER) {

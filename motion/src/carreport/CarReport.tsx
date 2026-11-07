@@ -1,7 +1,8 @@
 import React from 'react';
 import {AbsoluteFill, Audio, interpolate, random, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {EASE} from '../theme';
-import {Car, clamp, CR, ease, F, Finish, Ico, type IconName, PeruMap, Plate, TechBg} from './kit';
+import {clamp, CR, ease, F, Finish, Ico, type IconName, PeruMap, Plate, TechBg} from './kit';
+import {Car3D} from './Car3D';
 
 /* Comercial vertical: reporte vehicular completo por placa, a nivel nacional (Perú).
    Sin nombre de plataforma ni precio: el cierre invita a escribir al privado. */
@@ -87,9 +88,14 @@ const Hook: React.FC = () => {
         Array.from({length: 14}, (_, i) => (
           <div key={i} style={{position: 'absolute', left: x - 200 - random(`sl${i}`) * 500, top: 1050 + random(`sy${i}`) * 300, width: 300 + random(`sw${i}`) * 400, height: 3, background: `linear-gradient(90deg, transparent, ${CR.cyan})`, opacity: (1 - drive) * 0.8}} />
         ))}
-      <div style={{position: 'absolute', left: 540 - 470 + x, top: 990, transform: `rotate(${-brake}deg)`, transformOrigin: '80% 100%'}}>
-        <Car width={940} spin={drive * 900} lights={1} />
-      </div>
+      {/* auto 3D: entra en vista 3/4 frontal mientras la cámara se acerca y orbita */}
+      <Car3D
+        x={-11 + drive * 11}
+        rotY={-32 + brake * 2}
+        cam={[interpolate(frame, [0, 156], [5, 2]), interpolate(frame, [0, 156], [2.8, 2.0]) - brake * 0.04, interpolate(frame, [0, 156], [16.5, 14.5])]}
+        target={[0, 0.75, 0]}
+        fov={30}
+      />
       <Headline y={330} size={104} words={[0, 0.4, 0.48, 0.8, 0.96, 1.28].map((t, i) => ({t: '¿Vas a comprar un auto usado?'.split(' ')[i], at: sec(t), c: i === 5 ? CR.cyan : undefined}))} />
       <Headline y={1540} size={64} words={[{t: 'Antes de pagar,', at: sec(1.92)}, {t: 'revisa', at: sec(3.12)}, {t: 'su', at: sec(3.68)}, {t: 'historial', at: sec(3.92), c: CR.amber}]} />
     </Scene>
@@ -117,11 +123,17 @@ const Danger: React.FC = () => {
     <Scene dur={S.plate - S.danger}>
       <TechBg tint={CR.red} />
       <AbsoluteFill style={{transform: `translate(${shake}px, ${shake * 0.4}px)`}}>
-        <div style={{position: 'absolute', left: 540 - 450, top: 1060}}>
-          <Car width={900} wire={wire} spin={0} lights={0.4} />
-          {/* barrido de escaneo sobre el auto */}
-          <div style={{position: 'absolute', left: 900 * scan - 6, top: 40, width: 12, height: 300, background: CR.red, boxShadow: `0 0 30px ${CR.red}`, opacity: wire}} />
-        </div>
+        {/* auto 3D girando en modo radiografía roja con haz de escaneo */}
+        <Car3D
+          rotY={interpolate(frame, [0, S.plate - S.danger], [-70, 40])}
+          wire={wire}
+          wireColor={CR.red}
+          rim={CR.red}
+          scan={wire > 0.5 ? scan * 2 - 1 : null}
+          cam={[0, 2.8, 16]}
+          target={[0, 0.6, 0]}
+          fov={30}
+        />
         <Headline y={300} size={92} words={words('¿Y si el auto tiene un problema oculto?', 2, 3, {6: CR.red, 7: CR.red})} />
         {RISKS.map((r, i) => {
           const at = shakeAt[i];

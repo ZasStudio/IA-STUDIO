@@ -118,6 +118,13 @@ placa peruana que se teclea y escanea, informe de 14 secciones que se verifican 
 del Perú con ciudades, PDF y cierre "Escríbeme al privado" con chat. Música y efectos sintetizados
 con `tools/carreport_audio.py` (sin derechos de terceros). Masterizar a −14 LUFS con `loudnorm` de dos pasadas.
 
+- **Voz**: 7 frases de Magnific (voz "Esteban Villalobos", ElevenLabs v3) en `public/carreport/vo/`, con tiempos
+  por palabra en `vo/words.json`; las escenas, alertas y checks del reporte entran cuando la voz los nombra.
+- **Auto 3D**: imagen generada con Magnific → modelo GLB (Tripo H3.1) en `public/carreport/car/car.glb`,
+  renderizado con `@remotion/three` (`src/carreport/Car3D.tsx`): luces de estudio, entorno `RoomEnvironment`
+  (sin descargas), sombra de contacto, modo radiografía y haz de escaneo. En contenedores sin GPU hay que
+  renderizar con `--gl=swangle` (ya fijado en `remotion.config.ts`). `Car3DTest` gira el auto 360° para revisar.
+
 ## Técnicas clave
 
 - **Desenfoque**: `filter: blur()` animado en entradas/salidas y transiciones; `backdrop-filter` en el cristal.
