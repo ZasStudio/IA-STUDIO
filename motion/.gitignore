@@ -3,3 +3,6 @@ out
 .remotion
 public/barber
 __pycache__
+# pasadas 3D pre-renderizadas (se regeneran con los comandos de src/carreport/CarPasses.tsx)
+public/carreport/car/hook.mp4
+public/carreport/car/danger.mp4
