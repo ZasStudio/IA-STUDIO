@@ -1,10 +1,11 @@
 """Música y efectos sintetizados (sin derechos de terceros) para el comercial CarReport.
-Uso: python3 tools/carreport_audio.py public/carreport"""
+Uso: python3 tools/carreport_audio.py public/carreport [duración drop pausa_reporte riser_cta]"""
 import sys, wave
 import numpy as np
 
 SR = 48000
 out = sys.argv[1]
+ARGS = [float(x) for x in sys.argv[2:6]] if len(sys.argv) >= 6 else [38.0, 3.5, 11.2, 30.0]
 rng = np.random.default_rng(7)
 
 
@@ -38,7 +39,7 @@ def lp(x, k=40):
     return np.convolve(x, np.ones(k) / k, "same")
 
 
-DUR = 38.0
+DUR = ARGS[0]
 N = int(DUR * SR)
 mix = np.zeros(N)
 bpm = 120
@@ -52,7 +53,9 @@ def add(sig, at, g=1.0):
         mix[i:j] += sig[: j - i] * g
 
 
-DROP = 3.5
+DROP = ARGS[1]
+PAUSE = ARGS[2]
+CTA = ARGS[3]
 # drone + riser de intro
 t = np.arange(int(DROP * SR)) / SR
 drone = (np.sin(2 * np.pi * 55 * t) + 0.5 * np.sin(2 * np.pi * 82.4 * t)) * np.minimum(1, t / 2) * 0.18
@@ -63,17 +66,17 @@ n = int(1.6 * SR); tt = np.arange(n) / SR
 boom = (np.sin(2 * np.pi * (38 + 60 * np.exp(-tt * 6)) * tt) * env(n, 0.002, 0.5) + lp(rng.standard_normal(n), 3) * env(n, 0.001, 0.25) * 0.4)
 add(boom, DROP, 0.9)
 # ritmo
-END_BEAT = 36.2
+END_BEAT = DUR - 1.8
 b = DROP
 k = 0
 while b < END_BEAT:
     bar = int((b - DROP) / (beat * 4))
-    quiet = 10.9 < b < 11.5  # pausa antes del reporte
+    quiet = PAUSE - 0.3 < b < PAUSE + 0.3  # pausa antes del reporte
     if not quiet:
         add(kick(), b, 0.85)
-        if b > 7.5:
+        if b > DROP + 4:
             add(hat(), b + beat / 2, 0.8)
-        if k % 4 == 3 and b > 7.5:
+        if k % 4 == 3 and b > DROP + 4:
             add(hat(True), b + beat / 2, 0.5)
     b += beat
     k += 1
@@ -94,7 +97,7 @@ while b < END_BEAT:
     add(chord * np.sin(np.pi * tt / 2) * 0.05, b)
     b += 2
 # riser antes del reporte y del CTA
-for at, length in ((9.5, 1.9), (28.5, 1.5)):
+for at, length in ((PAUSE - 1.9, 1.9), (CTA - 1.5, 1.5)):
     n = int(length * SR); tt = np.arange(n) / SR
     add(lp(rng.standard_normal(n), 6) * (tt / length) ** 2.5 * 0.35, at)
 # final: golpe + cola

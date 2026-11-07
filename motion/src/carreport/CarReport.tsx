@@ -6,9 +6,22 @@ import {Car, clamp, CR, ease, F, Finish, Ico, type IconName, PeruMap, Plate, Tec
 /* Comercial vertical: reporte vehicular completo por placa, a nivel nacional (Perú).
    Sin nombre de plataforma ni precio: el cierre invita a escribir al privado. */
 
-export const CAR_REPORT_DURATION = 1140;
-
-const S = {hook: 0, danger: 105, plate: 225, report: 345, map: 675, pdf: 810, cta: 900};
+// Escenas ajustadas a la locución (voz de Magnific, 7 frases, tiempos por palabra medidos).
+const S = {hook: 0, danger: 156, plate: 354, report: 474, map: 960, pdf: 1095, cta: 1185, end: 1525};
+export const CAR_REPORT_DURATION = S.end;
+const LEAD = 5; // frames entre el inicio de la escena y el inicio de la voz
+const sec = (x: number) => Math.round(x * 30) + LEAD;
+// [archivo, escena] – la voz arranca en la escena + LEAD (CTA: más tarde, tras el chat)
+const CTA_VO = 88;
+const VO: [string, number, number][] = [
+  ['v1.wav', S.hook + LEAD, 4.64],
+  ['v2.wav', S.danger + LEAD, 6.34],
+  ['v3.wav', S.plate + LEAD, 2.51],
+  ['v4.wav', S.report + LEAD, 15.3],
+  ['v5.wav', S.map + LEAD, 3.85],
+  ['v6.wav', S.pdf + LEAD, 2.65],
+  ['v7.wav', S.cta + CTA_VO, 6.88],
+];
 
 /* ---------------------------------- utilidades ---------------------------------- */
 
@@ -67,7 +80,7 @@ const Hook: React.FC = () => {
   const x = -900 + drive * 900;
   const brake = Math.max(0, Math.sin(interpolate(frame, [30, 46], [0, Math.PI], clamp))) * 3;
   return (
-    <Scene dur={105} inF={0}>
+    <Scene dur={S.danger - S.hook} inF={0}>
       <TechBg />
       {/* líneas de velocidad */}
       {drive < 0.95 &&
@@ -77,8 +90,8 @@ const Hook: React.FC = () => {
       <div style={{position: 'absolute', left: 540 - 470 + x, top: 990, transform: `rotate(${-brake}deg)`, transformOrigin: '80% 100%'}}>
         <Car width={940} spin={drive * 900} lights={1} />
       </div>
-      <Headline y={330} size={104} words={words('¿Vas a comprar un auto usado?', 18, 4, {5: CR.cyan})} />
-      <Headline y={1540} size={64} words={[{t: 'Antes de pagar,', at: 62}, {t: 'revisa', at: 68}, {t: 'su', at: 72}, {t: 'historial', at: 76, c: CR.amber}]} />
+      <Headline y={330} size={104} words={[0, 0.4, 0.48, 0.8, 0.96, 1.28].map((t, i) => ({t: '¿Vas a comprar un auto usado?'.split(' ')[i], at: sec(t), c: i === 5 ? CR.cyan : undefined}))} />
+      <Headline y={1540} size={64} words={[{t: 'Antes de pagar,', at: sec(1.92)}, {t: 'revisa', at: sec(3.12)}, {t: 'su', at: sec(3.68)}, {t: 'historial', at: sec(3.92), c: CR.amber}]} />
     </Scene>
   );
 };
@@ -97,11 +110,11 @@ const Danger: React.FC = () => {
   const {fps} = useVideoConfig();
   const scan = ((frame % 50) / 50) * 1;
   const wire = ease(frame, 4, 20);
-  const shakeAt = RISKS.map((_, i) => 22 + i * 18);
+  const shakeAt = [0.88, 2.24, 3.84, 5.52].map(sec);
   const shake = shakeAt.reduce((a, s) => (frame >= s && frame < s + 6 ? (random(`sh${frame}`) - 0.5) * 22 : a), 0);
   const pulse = shakeAt.reduce((a, s) => Math.max(a, interpolate(frame - s, [0, 3, 14], [0, 0.45, 0], clamp)), 0);
   return (
-    <Scene dur={120}>
+    <Scene dur={S.plate - S.danger}>
       <TechBg tint={CR.red} />
       <AbsoluteFill style={{transform: `translate(${shake}px, ${shake * 0.4}px)`}}>
         <div style={{position: 'absolute', left: 540 - 450, top: 1060}}>
@@ -156,9 +169,9 @@ const PlateScene: React.FC = () => {
   const scan = interpolate(frame, [66, 92], [0, 1], clamp);
   const prog = interpolate(frame, [70, 112], [0, 100], {...clamp, easing: EASE.inOut});
   return (
-    <Scene dur={120}>
+    <Scene dur={S.report - S.plate}>
       <TechBg />
-      <Headline y={290} size={94} words={words('Descúbrelo con solo la placa', 2, 4, {4: CR.cyan})} />
+      <Headline y={290} size={94} words={[0.08, 0.96, 1.2, 1.68, 1.84].map((t, i) => ({t: 'Descúbrelo con solo la placa'.split(' ')[i], at: sec(t) - 2, c: i === 4 ? CR.cyan : undefined}))} />
       <div style={{position: 'absolute', left: 540 - 400, top: 760 + (1 - drop) * -900, transform: `rotate(${(1 - drop) * -10}deg)`}}>
         <Plate text={txt} width={800} scan={frame >= 66 && frame <= 92 ? scan : -1} />
       </div>
@@ -204,22 +217,23 @@ const ITEMS: {t: string; icon: IconName}[] = [
   {t: 'Registro de transporte', icon: 'bus'},
 ];
 
-const ROW0 = 36;
-const ROWGAP = 15;
+// momento (s de la voz) en que se nombra cada sección; las no nombradas caen entre medias
+const ROW_T = [2.96, 4.4, 5.1, 5.84, 6.48, 7.28, 8.8, 9.84, 10.64, 11.84, 12.56, 12.95, 13.3, 13.6].map(sec);
+const ROW_DONE = ROW_T[ROW_T.length - 1] + 8;
 
 const ReportScene: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const card = spring({frame: frame - 6, fps, config: {damping: 16, stiffness: 110}});
-  const done = Math.min(ITEMS.length, Math.max(0, Math.floor((frame - ROW0 - 6) / ROWGAP) + 1));
-  const complete = frame > ROW0 + ITEMS.length * ROWGAP + 6;
-  const beam = ((frame - ROW0) / (ITEMS.length * ROWGAP)) % 1;
-  const ry = interpolate(frame, [0, 330], [-12, 8]);
+  const done = ROW_T.filter((t) => frame >= t + 6).length;
+  const complete = frame > ROW_DONE;
+  const beam = ((frame - ROW_T[0]) / (ROW_DONE - ROW_T[0])) % 1;
+  const ry = interpolate(frame, [0, S.map - S.report], [-12, 8]);
   const rx = interpolate(card, [0, 1], [30, 6]);
   return (
-    <Scene dur={330}>
+    <Scene dur={S.map - S.report}>
       <TechBg />
-      <Headline y={150} size={86} words={words('Reporte vehicular completo', 4, 4, {2: CR.cyan})} />
+      <Headline y={150} size={86} words={[0.88, 1.36, 2.16].map((t, i) => ({t: 'Reporte vehicular completo'.split(' ')[i], at: sec(t) - 2, c: i === 2 ? CR.cyan : undefined}))} />
       <div style={{position: 'absolute', left: 70, top: 400, width: 940, perspective: 2200}}>
         <div
           style={{
@@ -247,10 +261,10 @@ const ReportScene: React.FC = () => {
           {/* filas */}
           <div style={{padding: '12px 34px 26px'}}>
             {ITEMS.map((it, i) => {
-              const at = ROW0 + i * ROWGAP;
+              const at = ROW_T[i] - 6;
               const p = ease(frame, at, at + 10);
               const ck = spring({frame: frame - at - 6, fps, config: {damping: 9, stiffness: 300, mass: 0.5}});
-              const active = frame >= at && frame < at + ROWGAP;
+              const active = frame >= at && frame < (ROW_T[i + 1] ?? ROW_DONE) - 6;
               return (
                 <div
                   key={it.t}
@@ -283,11 +297,11 @@ const ReportScene: React.FC = () => {
             })}
           </div>
           {/* haz de lectura */}
-          {!complete && frame > ROW0 && <div style={{position: 'absolute', left: 0, right: 0, top: 120 + beam * 1010, height: 4, background: CR.cyan, boxShadow: `0 0 24px ${CR.cyan}`, opacity: 0.7}} />}
+          {!complete && frame > ROW_T[0] && <div style={{position: 'absolute', left: 0, right: 0, top: 120 + beam * 1010, height: 4, background: CR.cyan, boxShadow: `0 0 24px ${CR.cyan}`, opacity: 0.7}} />}
         </div>
       </div>
       {complete && (
-        <div style={{position: 'absolute', left: 0, right: 0, top: 1720, textAlign: 'center', fontFamily: F.head, fontWeight: 800, fontSize: 44, color: CR.green, opacity: ease(frame, ROW0 + ITEMS.length * ROWGAP + 8, ROW0 + ITEMS.length * ROWGAP + 20), textShadow: `0 0 24px ${CR.green}88`}}>
+        <div style={{position: 'absolute', left: 0, right: 0, top: 1720, textAlign: 'center', fontFamily: F.head, fontWeight: 800, fontSize: 44, color: CR.green, opacity: ease(frame, ROW_DONE, ROW_DONE + 12), textShadow: `0 0 24px ${CR.green}88`}}>
           14 secciones en un solo informe
         </div>
       )}
@@ -300,10 +314,10 @@ const ReportScene: React.FC = () => {
 const MapScene: React.FC = () => {
   const frame = useCurrentFrame();
   return (
-    <Scene dur={135}>
+    <Scene dur={S.pdf - S.map}>
       <TechBg grid={0.5} />
-      <Headline y={170} size={110} words={[{t: 'A nivel', at: 4}, {t: 'nacional', at: 9, c: CR.cyan}]} />
-      <div style={{position: 'absolute', left: 0, right: 0, top: 420, textAlign: 'center', fontFamily: F.head, fontWeight: 700, fontSize: 40, color: '#ffffffcc', opacity: ease(frame, 14, 26)}}>Autos de cualquier región del Perú</div>
+      <Headline y={170} size={110} words={[{t: 'A nivel', at: sec(2.4)}, {t: 'nacional', at: sec(3.2), c: CR.cyan}]} />
+      <div style={{position: 'absolute', left: 0, right: 0, top: 420, textAlign: 'center', fontFamily: F.head, fontWeight: 700, fontSize: 40, color: '#ffffffcc', opacity: ease(frame, 6, 18)}}>Autos de cualquier región del Perú</div>
       <PeruMap t={frame - 8} box={[[150, 520], [930, 1850]]} />
     </Scene>
   );
@@ -322,7 +336,7 @@ const PdfScene: React.FC = () => {
     {t: 'Datos de registros oficiales', icon: 'shield'},
   ];
   return (
-    <Scene dur={90}>
+    <Scene dur={S.cta - S.pdf}>
       <TechBg />
       <div style={{position: 'absolute', left: 540 - 270, top: 300, width: 540, height: 720, perspective: 1800}}>
         <div style={{width: '100%', height: '100%', borderRadius: 22, background: '#fff', transform: `rotateY(${flip}deg) rotateZ(${(1 - s) * 10}deg) scale(${0.7 + 0.3 * s})`, boxShadow: '0 40px 90px rgba(0,0,0,.6)', padding: 44, boxSizing: 'border-box', fontFamily: F.ui}}>
@@ -378,12 +392,13 @@ const CtaScene: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const win = spring({frame: frame - 2, fps, config: {damping: 16, stiffness: 140}});
-  const shrink = ease(frame, 120, 140, EASE.inOut);
-  const big = spring({frame: frame - 134, fps, config: {damping: 11, stiffness: 220}});
-  const typing = frame >= 44 && frame < 70;
-  const plane = interpolate(frame, [150, 178], [0, 1], {...clamp, easing: EASE.inOut});
+  const v = (t: number) => CTA_VO + Math.round(t * 30);
+  const shrink = ease(frame, CTA_VO - 18, CTA_VO, EASE.inOut);
+  const big = spring({frame: frame - CTA_VO, fps, config: {damping: 11, stiffness: 220}});
+  const typing = frame >= 26 && frame < 44;
+  const plane = interpolate(frame, [v(1.6), v(2.6)], [0, 1], {...clamp, easing: EASE.inOut});
   return (
-    <Scene dur={240} outF={0}>
+    <Scene dur={S.end - S.cta} outF={0}>
       <TechBg />
       {/* ventana de chat (mensaje privado) */}
       <div
@@ -412,7 +427,7 @@ const CtaScene: React.FC = () => {
           </div>
         </div>
         <div style={{padding: '14px 30px 34px', minHeight: 640}}>
-          <Bubble me at={14}>
+          <Bubble me at={8}>
             Hola 👋 quiero el reporte completo de la placa <b>ABC-123</b>
           </Bubble>
           {typing && (
@@ -422,8 +437,8 @@ const CtaScene: React.FC = () => {
               ))}
             </div>
           )}
-          <Bubble at={70}>¡Claro! Aquí tienes tu reporte completo ✅</Bubble>
-          <Bubble at={88}>
+          <Bubble at={44}>¡Claro! Aquí tienes tu reporte completo ✅</Bubble>
+          <Bubble at={56}>
             <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
               <div style={{width: 76, height: 90, borderRadius: 12, background: '#e5383b', display: 'grid', placeItems: 'center'}}>
                 <Ico name="pdf" size={50} color="#fff" />
@@ -437,23 +452,23 @@ const CtaScene: React.FC = () => {
         </div>
       </div>
       {/* llamado final */}
-      {frame >= 134 && (
+      {frame >= CTA_VO && (
         <div style={{position: 'absolute', left: 0, right: 0, top: 1000, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
           <div style={{fontFamily: F.head, fontWeight: 900, fontSize: 116, color: '#fff', lineHeight: 1, textAlign: 'center', transform: `scale(${1.4 - 0.4 * big})`, opacity: Math.min(1, big * 2), textShadow: `0 0 40px ${CR.cyan}66`}}>
             ESCRÍBEME
             <br />
             <span style={{color: CR.cyan}}>AL PRIVADO</span>
           </div>
-          <div style={{marginTop: 34, fontFamily: F.head, fontWeight: 700, fontSize: 44, color: '#ffffffdd', textAlign: 'center', opacity: ease(frame, 150, 162), transform: `translateY(${(1 - ease(frame, 150, 162)) * 20}px)`}}>
+          <div style={{marginTop: 34, fontFamily: F.head, fontWeight: 700, fontSize: 44, color: '#ffffffdd', textAlign: 'center', opacity: ease(frame, v(1.5), v(1.5) + 12), transform: `translateY(${(1 - ease(frame, v(1.5), v(1.5) + 12)) * 20}px)`}}>
             Envíame la placa y te paso
             <br />
             el reporte completo 📩
           </div>
-          <div style={{marginTop: 46, padding: '22px 50px', borderRadius: 60, background: `linear-gradient(135deg, ${CR.cyan}, #2a6ae0)`, fontFamily: F.head, fontWeight: 900, fontSize: 46, color: '#04121c', opacity: ease(frame, 168, 178), boxShadow: `0 0 ${30 + Math.sin(frame / 7) * 18}px ${CR.cyan}aa`, transform: `scale(${1 + Math.sin(frame / 7) * 0.02})`}}>
+          <div style={{marginTop: 46, padding: '22px 50px', borderRadius: 60, background: `linear-gradient(135deg, ${CR.cyan}, #2a6ae0)`, fontFamily: F.head, fontWeight: 900, fontSize: 46, color: '#04121c', opacity: ease(frame, v(4.9), v(4.9) + 10), boxShadow: `0 0 ${30 + Math.sin(frame / 7) * 18}px ${CR.cyan}aa`, transform: `scale(${1 + Math.sin(frame / 7) * 0.02})`}}>
             REVISA ANTES DE COMPRAR
           </div>
           {/* flecha hacia el botón de mensajes de la red social */}
-          <div style={{marginTop: 30, fontSize: 70, color: CR.cyan, opacity: ease(frame, 182, 192), transform: `translateY(${Math.abs(Math.sin(frame / 6)) * 18}px)`}}>⬇</div>
+          <div style={{marginTop: 30, fontSize: 70, color: CR.cyan, opacity: ease(frame, v(5.6), v(5.6) + 10), transform: `translateY(${Math.abs(Math.sin(frame / 6)) * 18}px)`}}>⬇</div>
         </div>
       )}
       {/* avión de papel */}
@@ -477,7 +492,13 @@ const sfx = (src: string, at: number, volume = 1) => (
 export const CarReport: React.FC = () => {
   return (
     <AbsoluteFill style={{background: CR.bg}}>
-      <Audio src={staticFile('carreport/music.wav')} volume={0.75} />
+      {/* música con "ducking": baja cuando habla la voz */}
+      <Audio src={staticFile('carreport/music.wav')} volume={(f) => (VO.some(([, at, d]) => f >= at - 4 && f <= at + d * 30 + 4) ? 0.32 : 0.75)} />
+      {VO.map(([src, at]) => (
+        <Sequence key={src} from={at}>
+          <Audio src={staticFile(`carreport/vo/${src}`)} volume={1} />
+        </Sequence>
+      ))}
       <Sequence from={S.hook} durationInFrames={S.danger - S.hook + 8}>
         <Hook />
       </Sequence>
@@ -496,26 +517,26 @@ export const CarReport: React.FC = () => {
       <Sequence from={S.pdf} durationInFrames={S.cta - S.pdf + 8}>
         <PdfScene />
       </Sequence>
-      <Sequence from={S.cta}>
+      <Sequence from={S.cta} durationInFrames={S.end - S.cta}>
         <CtaScene />
       </Sequence>
       <Finish />
       {/* efectos */}
       {sfx('whoosh.wav', 0, 0.8)}
-      {[0, 1, 2, 3].map((i) => sfx('glitch.wav', S.danger + 22 + i * 18, 0.9))}
-      {sfx('alarm.wav', S.danger + 22, 0.6)}
+      {[0.88, 2.24, 3.84, 5.52].map((t) => sfx('glitch.wav', S.danger + sec(t), 0.6))}
+      {sfx('alarm.wav', S.danger + sec(0.88), 0.4)}
       {sfx('whoosh.wav', S.plate, 0.6)}
       {Array.from({length: 7}, (_, i) => sfx('tick.wav', S.plate + 34 + i * 4, 0.8))}
       {sfx('scan.wav', S.plate + 66, 0.8)}
       {sfx('whoosh.wav', S.report, 0.6)}
-      {Array.from({length: 14}, (_, i) => sfx('check.wav', S.report + ROW0 + 6 + i * ROWGAP, 0.7))}
+      {ROW_T.map((t) => sfx('check.wav', S.report + t, 0.5))}
       {sfx('whoosh.wav', S.map, 0.6)}
       {Array.from({length: 10}, (_, i) => sfx('pop.wav', S.map + 8 + 50 + i * 6, 0.35))}
       {sfx('whoosh.wav', S.pdf, 0.6)}
-      {sfx('pop.wav', S.cta + 14, 0.7)}
-      {sfx('pop.wav', S.cta + 70, 0.7)}
-      {sfx('pop.wav', S.cta + 88, 0.7)}
-      {sfx('whoosh.wav', S.cta + 150, 0.8)}
+      {sfx('pop.wav', S.cta + 8, 0.7)}
+      {sfx('pop.wav', S.cta + 44, 0.7)}
+      {sfx('pop.wav', S.cta + 56, 0.7)}
+      {sfx('whoosh.wav', S.cta + CTA_VO + 48, 0.6)}
     </AbsoluteFill>
   );
 };
