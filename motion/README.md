@@ -110,6 +110,14 @@ checkout (campos que se teclean) → confirmación → cierre. Productos, precio
 tiendas salen de los datos públicos del sitio; logo, colores y métodos de pago son una interpretación
 (el sitio no era accesible desde el entorno de render). Sonidos sintetizados en `public/sanbarber/`.
 
+### Comercial "CarReport" (`src/carreport/`)
+
+Comercial vertical (38 s) para vender reportes vehiculares por placa en todo el Perú, sin nombre de
+plataforma ni precio: gancho con auto que entra, riesgos (robado, papeletas, embargado, chocado),
+placa peruana que se teclea y escanea, informe de 14 secciones que se verifican una a una, mapa real
+del Perú con ciudades, PDF y cierre "Escríbeme al privado" con chat. Música y efectos sintetizados
+con `tools/carreport_audio.py` (sin derechos de terceros). Masterizar a −14 LUFS con `loudnorm` de dos pasadas.
+
 ## Técnicas clave
 
 - **Desenfoque**: `filter: blur()` animado en entradas/salidas y transiciones; `backdrop-filter` en el cristal.

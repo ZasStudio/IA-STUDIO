@@ -14,6 +14,7 @@ import {MonitorReel} from './prompt/MonitorReel';
 import {DocReel, DOC_REEL_DURATION, type DocReelProps} from './doc/DocReel';
 import {BarberReel, BARBER_DURATION, MapScene} from './barber/BarberReel';
 import {SanBarberReel, SANBARBER_DURATION} from './sanbarber/SanBarberReel';
+import {CarReport, CAR_REPORT_DURATION} from './carreport/CarReport';
 
 const V = {fps: 30, width: 1920, height: 1080} as const;
 
@@ -42,6 +43,7 @@ export const RemotionRoot: React.FC = () => (
 
     {/* Estilo 3: reel documental vertical con subtítulos editoriales apilados */}
     <Composition id="BarberReel" component={BarberReel} durationInFrames={BARBER_DURATION} fps={30} width={1080} height={1920} />
+    <Composition id="CarReport" component={CarReport} durationInFrames={CAR_REPORT_DURATION} fps={30} width={1080} height={1920} />
     <Composition id="SanBarberReel" component={SanBarberReel} durationInFrames={SANBARBER_DURATION} fps={30} width={1080} height={1920} />
     <Composition id="Barber-Map" component={MapScene} durationInFrames={198} fps={30} width={1080} height={1920} />
     <Composition id="DocReel" component={DocReel} durationInFrames={DOC_REEL_DURATION} fps={30} width={1080} height={1920} defaultProps={{} as DocReelProps} />

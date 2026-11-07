@@ -11,6 +11,7 @@
     "render:doc": "remotion render DocReel out/doc-reel.mp4",
     "render:barber": "remotion render BarberReel out/barber-reel.mp4",
     "render:sanbarber": "remotion render SanBarberReel out/sanbarber-reel.mp4",
+    "render:carreport": "remotion render CarReport out/car-report.mp4",
     "still": "remotion still SparkPromo out/frame.png --frame=60",
     "typecheck": "tsc --noEmit"
   },
