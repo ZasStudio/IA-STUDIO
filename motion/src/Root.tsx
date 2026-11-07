@@ -16,6 +16,7 @@ import {BarberReel, BARBER_DURATION, MapScene} from './barber/BarberReel';
 import {SanBarberReel, SANBARBER_DURATION} from './sanbarber/SanBarberReel';
 import {CarReport, CAR_REPORT_DURATION} from './carreport/CarReport';
 import {Car3DTest} from './carreport/Car3DTest';
+import {CarHook3D, CarDanger3D, HOOK_LEN, DANGER_LEN} from './carreport/CarPasses';
 
 const V = {fps: 30, width: 1920, height: 1080} as const;
 
@@ -44,6 +45,8 @@ export const RemotionRoot: React.FC = () => (
 
     {/* Estilo 3: reel documental vertical con subtítulos editoriales apilados */}
     <Composition id="BarberReel" component={BarberReel} durationInFrames={BARBER_DURATION} fps={30} width={1080} height={1920} />
+    <Composition id="CarHook3D" component={CarHook3D} durationInFrames={HOOK_LEN} fps={30} width={1080} height={1920} />
+    <Composition id="CarDanger3D" component={CarDanger3D} durationInFrames={DANGER_LEN} fps={30} width={1080} height={1920} />
     <Composition id="Car3DTest" component={Car3DTest} durationInFrames={120} fps={30} width={1080} height={1920} />
     <Composition id="CarReport" component={CarReport} durationInFrames={CAR_REPORT_DURATION} fps={30} width={1080} height={1920} />
     <Composition id="SanBarberReel" component={SanBarberReel} durationInFrames={SANBARBER_DURATION} fps={30} width={1080} height={1920} />
